@@ -1,0 +1,124 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["linux-musl-openssl-3.0.x"]
+}
+
+model Part {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  footprint       String?
+  datasheetUrl    String?  // Local path to PDF
+  category        Category @relation(fields: [categoryId], references: [id])
+  categoryId      String
+  storageLocation StorageLocation @relation(fields: [storageLocationId], references: [id])
+  storageLocationId String
+  stockLevels     StockLevel[]
+  bomItems        BOMItem[]
+  reorderLink     String?
+  minStock            Int      @default(0)
+  lowStockAlertEnabled Boolean @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  parts     Part[]
+  parent    Category? @relation("SubCategories", fields: [parentId], references: [id])
+  parentId  String?
+  children  Category[] @relation("SubCategories")
+}
+
+model StorageLocation {
+  id        String   @id @default(cuid())
+  name      String   // e.g., "Bin A1", "Drawer 2"
+  color     String?  // Hex code or color name
+  parts     Part[]
+  parent    StorageLocation? @relation("SubLocations", fields: [parentId], references: [id])
+  parentId  String?
+  children  StorageLocation[] @relation("SubLocations")
+}
+
+model StockLevel {
+  id        String   @id @default(cuid())
+  quantity  Int      @default(0)
+  part      Part     @relation(fields: [partId], references: [id])
+  partId    String
+}
+
+model BOM {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  items       BOMItem[]
+  jobs        JobBOM[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model BOMItem {
+  id        String   @id @default(cuid())
+  quantity  Int      @default(1)
+  part      Part?    @relation(fields: [partId], references: [id], onDelete: SetNull)
+  partId    String?
+  bom       BOM      @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  bomId     String
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  status      JobStatus @default(DRAFT)
+  boms        JobBOM[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model JobBOM {
+  id        String   @id @default(cuid())
+  quantity  Int      @default(1)
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId     String
+  bom       BOM      @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  bomId     String
+}
+
+enum JobStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  type        String   // e.g. "PART_CREATED", "STOCK_ADD", "STOCK_DEDUCT", "JOB_COMPLETED"
+  description String   // Human readable details
+  partId      String?  // Optional reference to a Part
+  jobId       String?  // Optional reference to a Job
+  userId      String?  // Who performed the action
+  user        User?    @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model User {
+  id          String        @id @default(cuid())
+  username    String        @unique
+  password    String
+  role        Role          @default(USER)
+  activities  ActivityLog[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
+}
