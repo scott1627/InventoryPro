@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Menu, X, Layout, Package, Tag, MapPin, Layers, FileText } from "lucide-react";
+import { Menu, X, Layout, Package, Tag, MapPin, Layers, FileText, Users, Database } from "lucide-react";
 import { cn } from "../lib/utils";
 
 const NAV_LINKS = [
@@ -14,7 +14,17 @@ const NAV_LINKS = [
     { name: "Jobs", href: "/jobs", icon: <Layers size={18} /> },
 ];
 
-export default function MobileNav() {
+const ADMIN_LINKS = [
+    { name: "Users", href: "/users", icon: <Users size={18} /> },
+    { name: "Backup", href: "/admin/backup", icon: <Database size={18} /> },
+    { name: "Docs", href: "/admin/docs", icon: <FileText size={18} /> },
+];
+
+interface MobileNavProps {
+    role?: string;
+}
+
+export default function MobileNav({ role }: MobileNavProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
 
@@ -81,14 +91,32 @@ export default function MobileNav() {
                                 {link.name}
                             </a>
                         ))}
+                        
+                        {role === "ADMIN" && (
+                            <div className="pt-4 mt-4 border-t border-white/5 space-y-2">
+                                <p className="text-[10px] text-purple-500/50 uppercase tracking-widest font-bold px-4 mb-2">Admin Tools</p>
+                                {ADMIN_LINKS.map((link) => (
+                                    <a
+                                        key={link.href}
+                                        href={link.href}
+                                        onClick={() => setIsOpen(false)}
+                                        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-purple-500/10 text-purple-500 hover:text-purple-400 transition-all text-sm font-medium group active:scale-95"
+                                    >
+                                        <span className="text-purple-500/70 group-hover:text-purple-400 transition-colors">
+                                            {link.icon}
+                                        </span>
+                                        {link.name}
+                                    </a>
+                                ))}
+                            </div>
+                        )}
                     </nav>
 
                     <div className="p-6 border-t border-white/10 mt-auto" style={{ backgroundColor: '#131316' }}>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-4 opacity-50">InventoryPro v1.0</p>
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <a href="#" className="hover:text-foreground">Docs</a>
-                            <a href="#" className="hover:text-foreground">GitHub</a>
-                            <a href="#" className="hover:text-foreground">Settings</a>
+                            <a href="/admin/docs" className="hover:text-foreground">Docs</a>
+                            <a href="https://github.com/scott1627/InventoryPro" className="hover:text-foreground">GitHub</a>
                         </div>
                     </div>
                 </div>

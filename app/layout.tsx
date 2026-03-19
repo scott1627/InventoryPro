@@ -36,7 +36,7 @@ export default async function RootLayout({
                             <header className="shrink-0 z-[999] w-full glass border-b">
                                 <div className="container flex h-16 items-center justify-between px-4 mt-2 mb-2 lg:my-0">
                                     <div className="flex items-center gap-4">
-                                        <MobileNav />
+                                        <MobileNav role={session?.user?.role} />
                                         <div className="flex items-center gap-2">
                                             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
                                                 <span className="text-primary-foreground font-bold font-mono">IP</span>
@@ -53,9 +53,9 @@ export default async function RootLayout({
                                         <a href="/jobs" className="transition-colors hover:text-primary">Jobs</a>
                                         {session?.user?.role === "ADMIN" && (
                                         <>
-                                            <a href="/users" className="transition-colors hover:text-primary">Users</a>
-                                            <a href="/admin/backup" className="transition-colors hover:text-primary">Backup</a>
-                                            <a href="/admin/docs" className="transition-colors hover:text-primary">Docs</a>
+                                            <a href="/users" className="transition-colors text-purple-500 hover:text-purple-400">Users</a>
+                                            <a href="/admin/backup" className="transition-colors text-purple-500 hover:text-purple-400">Backup</a>
+                                            <a href="/admin/docs" className="transition-colors text-purple-500 hover:text-purple-400">Docs</a>
                                         </>
                                     )}
                                     </nav>
