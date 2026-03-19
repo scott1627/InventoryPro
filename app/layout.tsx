@@ -30,7 +30,7 @@ export default async function RootLayout({
     return (
         <html lang="en" className="dark bg-background">
             <body className={cn(inter.className, "h-screen gradient-bg text-foreground antialiased")}>
-                <Providers>
+                <Providers session={session}>
                     {session ? (
                         <div className="flex h-screen flex-col overflow-hidden">
                             <header className="shrink-0 z-[999] w-full glass border-b">
