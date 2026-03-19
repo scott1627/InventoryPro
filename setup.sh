@@ -92,6 +92,7 @@ fi
 # 3. Build and Start Containers
 echo "Building and starting containers (this may take a few minutes)..."
 
+PROJECT_NAME="inventory-pro"
 # Check if we can run docker without sudo
 DOCKER_CMD="docker"
 if ! docker ps &> /dev/null; then
@@ -102,13 +103,18 @@ if ! docker ps &> /dev/null; then
     fi
 fi
 
-$DOCKER_CMD compose up -d --build
+# Stop existing containers if they are running to avoid port conflicts
+echo "Ensuring any existing version is stopped..."
+$DOCKER_CMD compose -p $PROJECT_NAME down --remove-orphans &> /dev/null || true
+
+echo "Starting fresh containers..."
+$DOCKER_CMD compose -p $PROJECT_NAME up -d --build
 
 # 4. Wait for database to be ready
 echo "Waiting for the database to be healthy..."
 RETRY_COUNT=0
 MAX_RETRIES=30
-while ! $DOCKER_CMD compose exec db pg_isready -U user -d inventory_db &> /dev/null; do
+while ! $DOCKER_CMD compose -p $PROJECT_NAME exec db pg_isready -U user -d inventory_db &> /dev/null; do
     if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
         echo "Error: Database timed out."
         exit 1
@@ -121,15 +127,15 @@ echo -e "\n✓ Database is ready."
 
 # 5. Initialize Database Schema & Generate Prisma Client
 echo "Initializing database schema and generating client..."
-$DOCKER_CMD compose exec app npx prisma db push
-$DOCKER_CMD compose exec app npx prisma generate
+$DOCKER_CMD compose -p $PROJECT_NAME exec app npx prisma db push
+$DOCKER_CMD compose -p $PROJECT_NAME exec app npx prisma generate
 
 # 6. Seed the Database
 echo "Ensuring default admin user is created..."
-$DOCKER_CMD compose exec app npx prisma db seed
+$DOCKER_CMD compose -p $PROJECT_NAME exec app npx prisma db seed
 
 echo "--------------------------------------------------------"
-echo "✓ SETUP COMPLETE!"
+echo "✓ SETUP/UPDATE COMPLETE!"
 echo "--------------------------------------------------------"
 echo "You can now access InventoryPro at: http://localhost:3000"
 echo "Default Credentials:"
