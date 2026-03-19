@@ -144,13 +144,34 @@ export default function LocationList({ initialLocations, allCategories, allLocat
 
     const handleCreate = async () => {
         if (!newLocationName.trim()) return;
-        const result = await addLocation(newLocationName, newLocationParentId || undefined, newLocationColor || undefined);
-        if (result.success) {
+
+        // Split by comma and filter out empty strings
+        const names = newLocationName.split(',').map(n => n.trim()).filter(n => n !== "");
+        
+        if (names.length === 0) return;
+
+        let anySuccess = false;
+        let lastError = "";
+
+        for (const name of names) {
+            const result = await addLocation(name, newLocationParentId || undefined, newLocationColor || undefined);
+            if (result.success) {
+                anySuccess = true;
+            } else {
+                lastError = result.error;
+            }
+        }
+
+        if (anySuccess) {
             setNewLocationName("");
-            setNewLocationParentId("");
+            // Keep newLocationParentId for further bulk actions
             setNewLocationColor(null);
-        } else {
-            alert(result.error);
+        }
+
+        if (lastError && !anySuccess) {
+            alert(lastError);
+        } else if (lastError) {
+            alert(`Some locations failed to create: ${lastError}`);
         }
     };
 
