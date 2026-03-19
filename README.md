@@ -10,6 +10,16 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
+### 🔄 Updating to the Latest Version
+If you want to pull the latest features and updates from GitHub, simply run:
+
+```bash
+chmod +x update.sh
+./update.sh
+```
+This will pull the latest code and re-build the system while **keeping all your data safe** in the database.
+
+
 This script will:
 1. Verify Your environment.
 2. Build and start the containers.
