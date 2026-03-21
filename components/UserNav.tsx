@@ -17,7 +17,7 @@ export default function UserNav() {
         <span className="hidden md:block">{session.user.username}</span>
       </div>
       <button
-        onClick={() => signOut()}
+        onClick={() => signOut({ callbackUrl: "/login" })}
         className="p-2 text-muted-foreground shadow-sm bg-background/50 hover:text-destructive hover:bg-destructive/10 border border-border/50 rounded-lg transition-colors"
         title="Sign Out"
       >

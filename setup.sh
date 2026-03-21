@@ -78,11 +78,11 @@ fi
 echo "✓ Docker and Docker Compose are installed."
 
 # 2. Setup Environment Variables
-if [ ! -f .env ]; then
-    echo "Creating default .env file..."
+    # For remote access, change localhost to your server's IP or hostname
+    NEXTAUTH_URL_DEFAULT="http://localhost:3000"
     cat > .env <<EOL
 NEXTAUTH_SECRET=$(openssl rand -base64 32 2>/dev/null || echo "default_secret_$(date +%s)")
-NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_URL=${NEXTAUTH_URL:-$NEXTAUTH_URL_DEFAULT}
 EOL
     echo "✓ Created .env with generated NEXTAUTH_SECRET."
 else
