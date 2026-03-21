@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText, ChevronRight, MapPin, Package, AlertTriangle, ExternalLink, Plus, Minus, Loader2 } from "lucide-react";
+import { FileText, ChevronRight, MapPin, Package, AlertTriangle, ExternalLink, Plus, Minus, Loader2, X } from "lucide-react";
 import PDFViewer from "./PDFViewer";
 import { cn } from "../lib/utils";
 import { adjustStock } from "../app/actions/parts";
@@ -11,6 +11,7 @@ interface Part {
     name: string;
     description: string | null;
     datasheetUrl: string | null;
+    imageUrl: string | null;
     categoryId: string;
     storageLocationId: string;
     category: { name: string };
@@ -34,6 +35,7 @@ export default function PartDetails({ part, isInline }: PartDetailsProps) {
     const [showDatasheet, setShowDatasheet] = useState(false);
     const [adjustQuantity, setAdjustQuantity] = useState(1);
     const [isAdjusting, setIsAdjusting] = useState(false);
+    const [isEnlarged, setIsEnlarged] = useState(false);
 
     const handleAdjust = async (amount: number) => {
         setIsAdjusting(true);
@@ -123,6 +125,49 @@ export default function PartDetails({ part, isInline }: PartDetailsProps) {
                     </div>
                 </div>
             </div>
+
+            {part.imageUrl && (
+                <div className="space-y-2">
+                    <p className="text-[10px] text-muted-foreground uppercase">Part Photo</p>
+                    <div 
+                        className="relative w-full aspect-video rounded-xl overflow-hidden border border-border bg-background/50 group cursor-zoom-in"
+                        onClick={() => setIsEnlarged(true)}
+                    >
+                        <img 
+                            src={part.imageUrl} 
+                            alt={part.name} 
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                            <Plus className="text-white opacity-0 group-hover:opacity-100 transition-opacity" size={24} />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {isEnlarged && part.imageUrl && (
+                <div 
+                    className="fixed inset-0 z-[11000] flex items-center justify-center p-8 bg-background/90 backdrop-blur-sm animate-in fade-in duration-200"
+                    onClick={() => setIsEnlarged(false)}
+                >
+                    <div className="relative max-w-5xl w-full max-h-full flex items-center justify-center animate-in zoom-in-95 duration-200">
+                        <img 
+                            src={part.imageUrl} 
+                            alt={part.name} 
+                            className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl border border-border"
+                        />
+                        <button 
+                            className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsEnlarged(false);
+                            }}
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {part.description && (
                 <div className="space-y-2">

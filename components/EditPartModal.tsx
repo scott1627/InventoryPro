@@ -10,6 +10,7 @@ interface Part {
     name: string;
     description: string | null;
     datasheetUrl: string | null;
+    imageUrl: string | null;
     categoryId: string;
     storageLocationId: string;
     category: { name: string };
@@ -245,11 +246,31 @@ export default function EditPartModal({ isOpen, onClose, part, categories, locat
                                             accept="application/pdf"
                                             className="w-full px-4 py-1.5 text-xs bg-secondary/50 rounded-xl border border-border file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30 outline-none transition-all cursor-pointer"
                                         />
-                                        {part.datasheetUrl && (
-                                            <p className="text-[10px] text-muted-foreground italic px-1">
-                                                Uploading a new file will replace the existing one.
-                                            </p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium flex items-center gap-2">
+                                        <Upload size={14} className="text-primary" /> {part.imageUrl ? "Update Photo" : "Part Photo (IMG)"}
+                                    </label>
+                                    <div className="space-y-3">
+                                        {part.imageUrl && (
+                                            <div className="flex items-center gap-3 p-3 bg-primary/5 rounded-xl border border-primary/20 text-xs text-foreground/80">
+                                                <div className="h-12 w-12 rounded-lg border border-border overflow-hidden bg-background flex shrink-0">
+                                                    <img src={part.imageUrl} alt="Part" className="w-full h-full object-cover" />
+                                                </div>
+                                                <div className="flex-1 truncate">
+                                                    <p className="font-semibold truncate">{part.imageUrl.split('/').pop()}</p>
+                                                    <span className="text-muted-foreground italic">Current photo attached</span>
+                                                </div>
+                                            </div>
                                         )}
+                                        <input
+                                            name="image"
+                                            type="file"
+                                            accept="image/*"
+                                            className="w-full px-4 py-1.5 text-xs bg-secondary/50 rounded-xl border border-border file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30 outline-none transition-all cursor-pointer"
+                                        />
                                     </div>
                                 </div>
                             </div>

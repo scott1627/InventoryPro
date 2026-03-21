@@ -21,6 +21,7 @@ model Part {
   stockLevels     StockLevel[]
   bomItems        BOMItem[]
   reorderLink     String?
+  imageUrl        String?  // Local path to image
   minStock            Int      @default(0)
   lowStockAlertEnabled Boolean @default(false)
   createdAt           DateTime @default(now())

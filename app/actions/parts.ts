@@ -21,7 +21,7 @@ export async function addPart(formData: FormData) {
         const lowStockAlertEnabled = formData.get("lowStockAlertEnabled") === "on";
         const reorderLink = formData.get("reorderLink") as string;
 
-        // Handle file upload (simulation for now, but in a real app would use fs or s3)
+        // Handle datasheet upload
         const datasheet = formData.get("datasheet") as File;
         let datasheetUrl = null;
         if (datasheet && datasheet.size > 0) {
@@ -29,6 +29,18 @@ export async function addPart(formData: FormData) {
             datasheetUrl = `/uploads/datasheets/${fileName}`;
             const buffer = Buffer.from(await datasheet.arrayBuffer());
             const filePath = path.join(process.cwd(), "public", datasheetUrl);
+            await fs.mkdir(path.dirname(filePath), { recursive: true });
+            await fs.writeFile(filePath, buffer);
+        }
+
+        // Handle image upload
+        const image = formData.get("image") as File;
+        let imageUrl = null;
+        if (image && image.size > 0) {
+            const fileName = `${Date.now()}-${image.name}`;
+            imageUrl = `/uploads/images/${fileName}`;
+            const buffer = Buffer.from(await image.arrayBuffer());
+            const filePath = path.join(process.cwd(), "public", imageUrl);
             await fs.mkdir(path.dirname(filePath), { recursive: true });
             await fs.writeFile(filePath, buffer);
         }
@@ -66,6 +78,7 @@ export async function addPart(formData: FormData) {
                 name,
                 description,
                 datasheetUrl,
+                imageUrl,
                 category: { connect: { id: finalCategoryId } },
                 storageLocation: { connect: { id: finalLocationId } },
                 minStock,
@@ -124,6 +137,17 @@ export async function updatePart(id: string, formData: FormData) {
             await fs.writeFile(filePath, buffer);
         }
 
+        const image = formData.get("image") as File;
+        let imageUrl = undefined;
+        if (image && image.size > 0) {
+            const fileName = `${Date.now()}-${image.name}`;
+            imageUrl = `/uploads/images/${fileName}`;
+            const buffer = Buffer.from(await image.arrayBuffer());
+            const filePath = path.join(process.cwd(), "public", imageUrl);
+            await fs.mkdir(path.dirname(filePath), { recursive: true });
+            await fs.writeFile(filePath, buffer);
+        }
+
         let finalCategoryId = categoryId;
         if (!finalCategoryId) {
             let unassigned = await prisma.category.findFirst({
@@ -162,6 +186,7 @@ export async function updatePart(id: string, formData: FormData) {
                 name,
                 description,
                 ...(datasheetUrl && { datasheetUrl }),
+                ...(imageUrl && { imageUrl }),
                 category: { connect: { id: finalCategoryId } },
                 storageLocation: { connect: { id: finalLocationId } },
                 minStock,

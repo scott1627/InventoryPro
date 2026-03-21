@@ -189,6 +189,17 @@ export default function AddPartModal({ isOpen, onClose, categories, locations }:
                                         className="w-full px-4 py-1.5 text-xs bg-secondary/50 rounded-xl border border-border file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30 outline-none transition-all cursor-pointer"
                                     />
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium flex items-center gap-2">
+                                        <Upload size={14} className="text-primary" /> Part Photo (IMG)
+                                    </label>
+                                    <input
+                                        name="image"
+                                        type="file"
+                                        accept="image/*"
+                                        className="w-full px-4 py-1.5 text-xs bg-secondary/50 rounded-xl border border-border file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30 outline-none transition-all cursor-pointer"
+                                    />
+                                </div>
                             </div>
 
                             <div className="space-y-2">
