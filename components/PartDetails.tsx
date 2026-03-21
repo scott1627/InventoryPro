@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { FileText, ChevronRight, MapPin, Package, AlertTriangle, ExternalLink, Plus, Minus, Loader2, X } from "lucide-react";
 import PDFViewer from "./PDFViewer";
 import { cn } from "../lib/utils";
@@ -145,28 +146,30 @@ export default function PartDetails({ part, isInline }: PartDetailsProps) {
                 </div>
             )}
 
-            {isEnlarged && part.imageUrl && (
+            {isEnlarged && part.imageUrl && typeof document !== 'undefined' && createPortal(
                 <div 
-                    className="fixed inset-0 z-[11000] flex items-center justify-center p-8 bg-background/90 backdrop-blur-sm animate-in fade-in duration-200"
+                    className="fixed inset-0 z-[11000] flex items-center justify-center p-4 md:p-12 bg-black/95 backdrop-blur-md animate-in fade-in duration-300"
                     onClick={() => setIsEnlarged(false)}
                 >
-                    <div className="relative max-w-5xl w-full max-h-full flex items-center justify-center animate-in zoom-in-95 duration-200">
+                    <div className="relative w-full h-full flex items-center justify-center animate-in zoom-in-95 duration-300">
                         <img 
                             src={part.imageUrl} 
                             alt={part.name} 
-                            className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl border border-border"
+                            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl border border-white/10"
                         />
                         <button 
-                            className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                            className="absolute top-0 right-0 m-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all border border-white/20 hover:scale-110 active:scale-95"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setIsEnlarged(false);
                             }}
+                            title="Close"
                         >
-                            <X size={24} />
+                            <X size={32} />
                         </button>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {part.description && (
