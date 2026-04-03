@@ -5,6 +5,7 @@ import { MapPin, Search, Edit3, Trash2, Plus, Package, Hash, X, ChevronDown, Che
 import { updateLocation, deleteLocation, addLocation } from "../app/actions/locations";
 import { deletePart } from "../app/actions/parts";
 import EditPartModal from "./EditPartModal";
+import AddPartModal from "./AddPartModal";
 import PartDetails from "./PartDetails";
 
 interface Part {
@@ -67,6 +68,7 @@ export default function LocationList({ initialLocations, allCategories, allLocat
 
     const [editingPart, setEditingPart] = useState<Part | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
 
     // Organize locations into hierarchy and calculate recursive counts
@@ -450,6 +452,19 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                                     {selectedLocation.parent && <span className="text-muted-foreground font-normal">{selectedLocation.parent.name} / </span>}
                                     {selectedLocation.name} Parts
                                 </h2>
+                                <button
+                                    onClick={() => setIsAddModalOpen(true)}
+                                    className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-primary text-primary-foreground rounded-lg text-xs font-bold hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 shrink-0"
+                                >
+                                    <Plus size={14} />
+                                    <span>Add Part to {selectedLocation.name}</span>
+                                </button>
+                                <button
+                                    onClick={() => setIsAddModalOpen(true)}
+                                    className="sm:hidden p-1.5 bg-primary text-primary-foreground rounded-lg shadow-lg shadow-primary/20 shrink-0"
+                                >
+                                    <Plus size={16} />
+                                </button>
                             </div>
                             <div className="relative w-full sm:w-64">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
@@ -577,6 +592,14 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                     locations={allLocations}
                 />
             )}
+
+            <AddPartModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                categories={allCategories}
+                locations={allLocations}
+                initialLocationId={selectedLocation.id}
+            />
         </div>
     );
 }

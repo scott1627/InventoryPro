@@ -10,9 +10,11 @@ interface AddPartModalProps {
     onClose: () => void;
     categories: { id: string; name: string }[];
     locations: { id: string; name: string; parentId?: string | null; parent?: { name: string } | null }[];
+    initialCategoryId?: string;
+    initialLocationId?: string;
 }
 
-export default function AddPartModal({ isOpen, onClose, categories, locations }: AddPartModalProps) {
+export default function AddPartModal({ isOpen, onClose, categories, locations, initialCategoryId, initialLocationId }: AddPartModalProps) {
     const [isPending, startTransition] = useTransition();
     const [isSuccess, setIsSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,16 @@ export default function AddPartModal({ isOpen, onClose, categories, locations }:
 
     useEffect(() => {
         setMounted(true);
-    }, []);
+        if (initialLocationId) {
+            const loc = locations.find(l => l.id === initialLocationId);
+            if (loc?.parentId) {
+                setSelectedParentId(loc.parentId);
+            } else if (loc) {
+                // If it's already a parent, select it
+                setSelectedParentId(loc.id);
+            }
+        }
+    }, [initialLocationId, locations]);
 
     const parentLocations = useMemo(() => {
         return locations.filter(loc => !loc.parentId);
@@ -124,7 +135,7 @@ export default function AddPartModal({ isOpen, onClose, categories, locations }:
                                     </label>
                                     <select
                                         name="categoryId"
-                                        defaultValue={categories.find(c => c.name === "Unassigned")?.id || ""}
+                                        defaultValue={initialCategoryId || categories.find(c => c.name === "Unassigned")?.id || ""}
                                         className="w-full px-4 py-2.5 bg-secondary/50 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer"
                                     >
                                         <option value="">Select Category...</option>
@@ -155,6 +166,7 @@ export default function AddPartModal({ isOpen, onClose, categories, locations }:
                                     </label>
                                     <select
                                         name="locationId"
+                                        defaultValue={initialLocationId || ""}
                                         disabled={!selectedParentId}
                                         className="w-full px-4 py-2.5 bg-secondary/50 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer disabled:opacity-50"
                                     >

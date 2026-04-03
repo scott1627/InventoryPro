@@ -5,6 +5,7 @@ import { Search, Folder, MapPin, Edit3, Trash2, Plus, ChevronRight, Hash, Packag
 import { updateCategory, deleteCategory, addCategory } from "../app/actions/categories";
 import { deletePart } from "../app/actions/parts";
 import EditPartModal from "./EditPartModal";
+import AddPartModal from "./AddPartModal";
 import PartDetails from "./PartDetails";
 
 interface Part {
@@ -48,6 +49,7 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
     const [newCategoryName, setNewCategoryName] = useState("");
     const [editingPart, setEditingPart] = useState<Part | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
     // Filter categories
     const filteredCategories = useMemo(() => {
@@ -206,10 +208,25 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
                 {selectedCategory ? (
                     <div className="flex flex-col h-full overflow-hidden">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2 shrink-0">
-                            <h2 className="text-xl font-bold flex items-center gap-2 truncate">
-                                <Package className="text-primary shrink-0" size={22} />
-                                <span className="truncate">{selectedCategory.name} Parts</span>
-                            </h2>
+                            <div className="flex items-center gap-4 truncate">
+                                <h2 className="text-xl font-bold flex items-center gap-2 truncate">
+                                    <Package className="text-primary shrink-0" size={22} />
+                                    <span className="truncate">{selectedCategory.name} Parts</span>
+                                </h2>
+                                <button
+                                    onClick={() => setIsAddModalOpen(true)}
+                                    className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-primary text-primary-foreground rounded-lg text-xs font-bold hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 shrink-0"
+                                >
+                                    <Plus size={14} />
+                                    <span>Add Part to {selectedCategory.name}</span>
+                                </button>
+                                <button
+                                    onClick={() => setIsAddModalOpen(true)}
+                                    className="sm:hidden p-1.5 bg-primary text-primary-foreground rounded-lg shadow-lg shadow-primary/20 shrink-0"
+                                >
+                                    <Plus size={16} />
+                                </button>
+                            </div>
                             <div className="relative w-full sm:w-64">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
                                 <input
@@ -344,6 +361,14 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
                     locations={allLocations}
                 />
             )}
+
+            <AddPartModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                categories={allCategories}
+                locations={allLocations}
+                initialCategoryId={selectedCategory.id}
+            />
         </div>
     );
 }
