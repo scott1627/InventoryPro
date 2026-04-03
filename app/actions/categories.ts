@@ -23,14 +23,17 @@ export async function addCategory(name: string, parentId?: string) {
     }
 }
 
-export async function updateCategory(id: string, name: string) {
+export async function updateCategory(id: string, name: string, parentId?: string | null) {
     const session = await getServerAuthSession();
     if (!session) return { success: false, error: "Unauthorized" };
 
     try {
         const category = await prisma.category.update({
             where: { id },
-            data: { name }
+            data: { 
+                name,
+                parentId: parentId !== undefined ? parentId : undefined
+            }
         });
         revalidatePath("/categories");
         revalidatePath("/parts");

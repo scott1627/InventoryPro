@@ -55,6 +55,21 @@ export default function EditPartModal({ isOpen, onClose, part, categories, locat
         return locations.filter(loc => loc.parentId === selectedParentId);
     }, [locations, selectedParentId]);
 
+    const categoryOptions = useMemo(() => {
+        const getPath = (cat: { id: string; name: string; parentId?: string | null }): string => {
+            const parent = categories.find(c => c.id === cat.parentId);
+            if (parent) {
+                return `${getPath(parent)} > ${cat.name}`;
+            }
+            return cat.name;
+        };
+
+        return categories.map(cat => ({
+            id: cat.id,
+            path: getPath(cat)
+        })).sort((a, b) => a.path.localeCompare(b.path));
+    }, [categories]);
+
     if (!isOpen || !mounted) return null;
 
     async function handleSubmit(formData: FormData) {
@@ -166,8 +181,8 @@ export default function EditPartModal({ isOpen, onClose, part, categories, locat
                                         className="w-full px-4 py-2.5 bg-secondary/50 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer"
                                     >
                                         <option value="">Select Category...</option>
-                                        {categories.map(cat => (
-                                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                        {categoryOptions.map(cat => (
+                                            <option key={cat.id} value={cat.id}>{cat.path}</option>
                                         ))}
                                     </select>
                                 </div>
