@@ -82,6 +82,7 @@ export default function CategoryPicker({ categories, value, onSelect, placeholde
                     <div className="flex items-center gap-1 shrink-0">
                         {hasChildren ? (
                             <button
+                                type="button"
                                 onClick={(e) => toggleExpand(node.id, e)}
                                 className={cn(
                                     "p-0.5 rounded hover:bg-black/10 transition-colors",
@@ -139,6 +140,7 @@ export default function CategoryPicker({ categories, value, onSelect, placeholde
                                 />
                                 {search && (
                                     <button 
+                                        type="button"
                                         onClick={() => setSearch("")} 
                                         className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                     >
