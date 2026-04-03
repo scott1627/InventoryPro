@@ -4,6 +4,7 @@ import { useState, useTransition, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { X, Plus, Package, MapPin, Tag, Hash, FileText, Upload, Loader2, CheckCircle2, Bell } from "lucide-react";
 import { addPart } from "../app/actions/parts";
+import CategoryPicker from "./CategoryPicker";
 
 interface AddPartModalProps {
     isOpen: boolean;
@@ -44,20 +45,11 @@ export default function AddPartModal({ isOpen, onClose, categories, locations, i
         return locations.filter(loc => loc.parentId === selectedParentId);
     }, [locations, selectedParentId]);
 
-    const categoryOptions = useMemo(() => {
-        const getPath = (cat: { id: string; name: string; parentId?: string | null }): string => {
-            const parent = categories.find(c => c.id === cat.parentId);
-            if (parent) {
-                return `${getPath(parent)} > ${cat.name}`;
-            }
-            return cat.name;
-        };
+    const [selectedCategoryId, setSelectedCategoryId] = useState(initialCategoryId || categories.find(c => c.name === "Unassigned")?.id || "");
 
-        return categories.map(cat => ({
-            id: cat.id,
-            path: getPath(cat)
-        })).sort((a, b) => a.path.localeCompare(b.path));
-    }, [categories]);
+    useEffect(() => {
+        if (initialCategoryId) setSelectedCategoryId(initialCategoryId);
+    }, [initialCategoryId]);
 
     if (!isOpen || !mounted) return null;
 
@@ -148,16 +140,11 @@ export default function AddPartModal({ isOpen, onClose, categories, locations, i
                                     <label className="text-sm font-medium flex items-center gap-2">
                                         <Tag size={14} className="text-primary" /> Category
                                     </label>
-                                    <select
-                                        name="categoryId"
-                                        defaultValue={initialCategoryId || categories.find(c => c.name === "Unassigned")?.id || ""}
-                                        className="w-full px-4 py-2.5 bg-secondary/50 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer"
-                                    >
-                                        <option value="">Select Category...</option>
-                                        {categoryOptions.map(cat => (
-                                            <option key={cat.id} value={cat.id}>{cat.path}</option>
-                                        ))}
-                                    </select>
+                                    <CategoryPicker 
+                                        categories={categories}
+                                        value={selectedCategoryId}
+                                        onSelect={setSelectedCategoryId}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium flex items-center gap-2">
