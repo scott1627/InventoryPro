@@ -118,6 +118,9 @@ export default function LocationList({ initialLocations, allCategories, allLocat
 
     useEffect(() => {
         setSelectedPart(null);
+        if (selectedLocation) {
+            setNewLocationParentId(selectedLocation.id);
+        }
     }, [selectedLocation?.id, partSearch]);
 
     const handleEdit = (location: Location) => {

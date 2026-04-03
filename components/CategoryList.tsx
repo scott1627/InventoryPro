@@ -117,6 +117,9 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
     // Reset selected part when category or part search changes
     useEffect(() => {
         setSelectedPart(null);
+        if (selectedCategory) {
+            setNewCategoryParentId(selectedCategory.id);
+        }
     }, [selectedCategory?.id, partSearch]);
 
     const handleEdit = (category: Category) => {
