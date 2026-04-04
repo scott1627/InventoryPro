@@ -200,8 +200,9 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
                     <div
                         onClick={() => setSelectedCategory(category)}
                         className={cn(
-                            "glass p-3 rounded-xl cursor-pointer transition-all border group relative",
-                            isSel ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-primary/30'
+                            "glass rounded-xl cursor-pointer transition-all border group relative",
+                            isSel ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-primary/30',
+                            depth > 2 ? "p-2" : "p-3"
                         )}
                     >
                         <div className="flex items-center justify-between gap-2">
@@ -244,7 +245,10 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
                     </div>
                 )}
                 {isExp && category.children && category.children.length > 0 && (
-                    <div className="ml-4 md:ml-6 pl-2 border-l border-primary/20 space-y-1 mt-1">
+                    <div className={cn(
+                        "pl-2 border-l border-primary/20 space-y-1 mt-1",
+                        depth < 2 ? "ml-4 md:ml-6" : "ml-2 md:ml-3"
+                    )}>
                         {category.children.map((child: any) => renderCategory(child, depth + 1))}
                     </div>
                 )}
