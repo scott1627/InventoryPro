@@ -170,7 +170,7 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
         return (
             <div key={category.id} className="space-y-1">
                 {isEditing === category.id ? (
-                    <div className={cn("glass p-3 rounded-xl space-y-3 ring-1 ring-primary/50", depth > 0 && "ml-4 md:ml-6")}>
+                    <div className={cn("glass p-3 rounded-xl space-y-3 ring-1 ring-primary/50 min-w-fit", depth > 0 && "ml-4 md:ml-6")}>
                         <div className="flex items-center gap-2">
                             <input
                                 autoFocus
@@ -199,8 +199,8 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
                 ) : (
                     <div
                         onClick={() => setSelectedCategory(category)}
-                        className={cn(
-                            "glass rounded-xl cursor-pointer transition-all border group relative",
+                            className={cn(
+                            "glass rounded-xl cursor-pointer transition-all border group relative min-w-fit",
                             isSel ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-primary/30',
                             depth > 2 ? "p-2" : "p-3"
                         )}
@@ -308,7 +308,7 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
                     </div>
                 </div>
 
-                <div className="space-y-1 overflow-y-auto flex-1 min-h-0 custom-scrollbar p-1 pr-2 pb-2">
+                <div className="space-y-1 overflow-auto flex-1 min-h-0 custom-scrollbar p-1 pr-2 pb-2">
                     {hierarchicalCategories.length === 0 ? (
                         <div className="p-8 text-center glass rounded-xl text-muted-foreground text-xs">
                             No categories found.
