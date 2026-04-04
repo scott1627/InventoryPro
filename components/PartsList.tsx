@@ -21,6 +21,7 @@ interface Part {
     };
     stockLevels: { quantity: number }[];
     reorderLink: string | null;
+    imageUrl: string | null;
     minStock: number;
     lowStockAlertEnabled: boolean;
 }
@@ -61,13 +62,24 @@ export default function PartsList({ initialParts, categories, locations }: Parts
         );
     }, [initialParts, searchQuery, categoryPaths]);
 
-    // Unified selection logic: handle initial list, search updates, and empty results
+    // Synchronize selectedPart with the latest data from filteredParts
     useEffect(() => {
-        const isCurrentSelectedInFiltered = selectedPart && filteredParts.find(p => p.id === selectedPart.id);
-        
-        if (!isCurrentSelectedInFiltered) {
-            // Either nothing was selected, or the selected part was filtered out
-            setSelectedPart(filteredParts[0] || null);
+        if (!selectedPart && filteredParts.length > 0) {
+            setSelectedPart(filteredParts[0]);
+            return;
+        }
+
+        if (selectedPart) {
+            const freshPart = filteredParts.find(p => p.id === selectedPart.id);
+            if (freshPart) {
+                // Only update if the object reference has changed (fresh data from prop update)
+                if (freshPart !== selectedPart) {
+                    setSelectedPart(freshPart);
+                }
+            } else {
+                // Selected part was filtered out or deleted
+                setSelectedPart(filteredParts[0] || null);
+            }
         }
     }, [filteredParts, selectedPart]);
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.2] - 2026-04-04
+
+### Fixed
+- UI synchronization issue where the details panel showed stale data (old location, missing images) after a part update.
+- Missing `imageUrl` in the parts list interface.
+
 ## [1.2.1] - 2026-04-04
 
 ### Fixed
