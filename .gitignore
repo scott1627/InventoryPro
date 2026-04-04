@@ -41,3 +41,6 @@ db_data/
 
 # Prisma
 /prisma/migrations
+
+# Uploads
+/public/uploads
