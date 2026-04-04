@@ -25,7 +25,7 @@ interface Part {
     reorderLink: string | null;
     minStock: number;
     lowStockAlertEnabled: boolean;
-    imageUrl?: string | null;
+    imageUrl: string | null;
 }
 
 interface Category {
@@ -114,13 +114,30 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
         );
     }, [selectedCategory, initialCategories, partSearch]);
 
-    // Reset selected part when category or part search changes
+    // Synchronize selectedCategory and selectedPart with the latest data from props
     useEffect(() => {
-        setSelectedPart(null);
+        // 1. Sync selectedCategory with fresh data from initialCategories
         if (selectedCategory) {
-            setNewCategoryParentId(selectedCategory.id);
+            const freshCat = initialCategories.find(c => c.id === selectedCategory.id);
+            if (freshCat && freshCat !== selectedCategory) {
+                setSelectedCategory(freshCat);
+                setNewCategoryParentId(freshCat.id);
+            }
         }
-    }, [selectedCategory?.id, partSearch]);
+
+        // 2. Sync selectedPart after filteredParts has potentially re-calculated
+        if (selectedPart) {
+            const freshPart = filteredParts.find(p => p.id === selectedPart.id);
+            if (freshPart) {
+                if (freshPart !== selectedPart) {
+                    setSelectedPart(freshPart);
+                }
+            } else {
+                // If it's no longer in the filtered list (e.g. search changed or category changed), deselect
+                setSelectedPart(null);
+            }
+        }
+    }, [initialCategories, filteredParts, selectedCategory?.id, partSearch]);
 
     const handleEdit = (category: Category) => {
         setIsEditing(category.id);

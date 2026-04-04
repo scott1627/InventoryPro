@@ -25,6 +25,7 @@ interface Part {
     reorderLink: string | null;
     minStock: number;
     lowStockAlertEnabled: boolean;
+    imageUrl: string | null;
 }
 
 interface LocationParent {
@@ -141,13 +142,31 @@ export default function LocationList({ initialLocations, allCategories, allLocat
         );
     }, [selectedLocation, initialLocations, partSearch, categoryPaths]);
 
+    // Synchronize selectedLocation and selectedPart with the latest data from props
     useEffect(() => {
-        setSelectedPart(null);
+        // 1. Sync selectedLocation with fresh data from initialLocations
         if (selectedLocation) {
-            setNewLocationParentId(selectedLocation.id);
-            setNewLocationColor(selectedLocation.color);
+            const freshLoc = initialLocations.find(l => l.id === selectedLocation.id);
+            if (freshLoc && freshLoc !== selectedLocation) {
+                setSelectedLocation(freshLoc);
+                setNewLocationParentId(freshLoc.id);
+                setNewLocationColor(freshLoc.color);
+            }
         }
-    }, [selectedLocation?.id, partSearch]);
+
+        // 2. Sync selectedPart after filteredParts has potentially re-calculated
+        if (selectedPart) {
+            const freshPart = filteredParts.find(p => p.id === selectedPart.id);
+            if (freshPart) {
+                if (freshPart !== selectedPart) {
+                    setSelectedPart(freshPart);
+                }
+            } else {
+                // If it's no longer in the filtered list (e.g. search changed or location changed), deselect
+                setSelectedPart(null);
+            }
+        }
+    }, [initialLocations, filteredParts, selectedLocation?.id, partSearch]);
 
     const handleEdit = (location: Location) => {
         setIsEditing(location.id);
