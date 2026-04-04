@@ -266,8 +266,7 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                         onClick={() => setSelectedLocation(location)}
                         className={cn(
                             "glass p-3 rounded-xl cursor-pointer transition-all border group relative",
-                            isSel ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-primary/30',
-                            depth > 0 && "ml-4 md:ml-6"
+                            isSel ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-primary/30'
                         )}
                     >
                         <div className="flex items-center justify-between gap-2">
@@ -314,7 +313,11 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                         </div>
                     </div>
                 )}
-                {isExp && location.children && location.children.map((child: any) => renderLocation(child, depth + 1))}
+                {isExp && location.children && location.children.length > 0 && (
+                    <div className="ml-4 md:ml-6 pl-2 border-l border-primary/20 space-y-1 mt-1">
+                        {location.children.map((child: any) => renderLocation(child, depth + 1))}
+                    </div>
+                )}
             </div>
         );
     };
