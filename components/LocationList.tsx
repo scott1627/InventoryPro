@@ -90,22 +90,34 @@ export default function LocationList({ initialLocations, allCategories, allLocat
         const query = locationSearch.toLowerCase();
         const rootLocations = initialLocations.filter(l => !l.parentId);
 
-        return rootLocations.map(root => {
-            const children = initialLocations.filter(l => l.parentId === root.id);
-            const recursiveParts = [
-                ...root.parts,
-                ...children.flatMap(child => child.parts)
-            ];
+        const buildHierarchy = (locs: Location[]): any[] => {
+            return locs.map(loc => {
+                const children = initialLocations.filter(l => l.parentId === loc.id);
+                const subHierarchy = buildHierarchy(children);
+                
+                // Recursive parts: self + all children's parts
+                const getRecursiveParts = (l: Location, allLocs: Location[]): Part[] => {
+                    const directParts = l.parts;
+                    const childLocs = allLocs.filter(child => child.parentId === l.id);
+                    const childParts = childLocs.flatMap(child => getRecursiveParts(child, allLocs));
+                    return [...directParts, ...childParts];
+                };
 
-            return {
-                ...root,
-                children,
-                recursivePartCount: recursiveParts.length
-            };
-        }).filter(root =>
-            root.name.toLowerCase().includes(query) ||
-            root.children.some(child => child.name.toLowerCase().includes(query))
-        );
+                const recursiveParts = getRecursiveParts(loc, initialLocations);
+
+                return {
+                    ...loc,
+                    children: subHierarchy,
+                    recursivePartCount: recursiveParts.length,
+                    allRecursiveParts: recursiveParts
+                };
+            }).filter(loc => 
+                loc.name.toLowerCase().includes(query) || 
+                (loc.children && loc.children.some((child: any) => child.name.toLowerCase().includes(query)))
+            );
+        };
+
+        return buildHierarchy(rootLocations);
     }, [initialLocations, locationSearch]);
 
     // Filter parts within selected location (including children if it's a parent)
@@ -113,22 +125,21 @@ export default function LocationList({ initialLocations, allCategories, allLocat
         if (!selectedLocation) return [];
         const query = partSearch.toLowerCase();
 
-        // Get parts from the location itself
-        let parts = [...selectedLocation.parts];
+        const getRecursiveParts = (l: Location, allLocs: Location[]): Part[] => {
+            const directParts = l.parts;
+            const childLocs = allLocs.filter(child => child.parentId === l.id);
+            const childParts = childLocs.flatMap(child => getRecursiveParts(child, allLocs));
+            return [...directParts, ...childParts];
+        };
 
-        // If it's a parent, also get parts from all its children
-        if (!selectedLocation.parentId) {
-            const children = initialLocations.filter(l => l.parentId === selectedLocation.id);
-            const childParts = children.flatMap(child => child.parts);
-            parts = [...parts, ...childParts];
-        }
+        const allParts = getRecursiveParts(selectedLocation, initialLocations);
 
-        return parts.filter(part =>
+        return allParts.filter(part =>
             part.name.toLowerCase().includes(query) ||
-            part.category.name.toLowerCase().includes(query) ||
+            (categoryPaths[part.categoryId] || "").toLowerCase().includes(query) ||
             part.description?.toLowerCase().includes(query)
         );
-    }, [selectedLocation, initialLocations, partSearch]);
+    }, [selectedLocation, initialLocations, partSearch, categoryPaths]);
 
     useEffect(() => {
         setSelectedPart(null);
@@ -201,6 +212,112 @@ export default function LocationList({ initialLocations, allCategories, allLocat
         setExpandedParents(next);
     };
 
+    const renderLocation = (location: any, depth = 0) => {
+        const isSel = selectedLocation?.id === location.id;
+        const hasChildren = location.children && location.children.length > 0;
+        const isExp = expandedParents.has(location.id);
+
+        return (
+            <div key={location.id} className="space-y-1">
+                {isEditing === location.id ? (
+                    <div className={cn("glass p-3 rounded-xl space-y-3 ring-1 ring-primary/50", depth > 0 && "ml-4 md:ml-6")}>
+                        <div className="flex items-center gap-2">
+                            <input
+                                autoFocus
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                className="flex-1 bg-secondary/50 rounded-lg px-3 py-1.5 text-xs outline-none border border-transparent focus:border-primary"
+                            />
+                            <button onClick={() => handleSave(location.id)} className="p-2 bg-primary rounded-lg text-primary-foreground hover:opacity-90 transition-opacity">
+                                <Check size={14} />
+                            </button>
+                            <button onClick={() => setIsEditing(null)} className="p-2 bg-secondary rounded-lg text-muted-foreground hover:bg-secondary/80 transition-colors">
+                                <X size={14} />
+                            </button>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                                <div className="relative group/edit">
+                                    <input
+                                        type="color"
+                                        value={editColor || "#4b5563"}
+                                        onChange={(e) => setEditColor(e.target.value)}
+                                        className="h-6 w-6 rounded-md cursor-pointer bg-transparent border-none appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
+                                    />
+                                    <Palette size={10} className="absolute inset-0 m-auto pointer-events-none text-white mix-blend-difference opacity-50 group-hover/edit:opacity-100 transition-opacity" />
+                                </div>
+                                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Theme Color</span>
+                            </div>
+                            <select
+                                value={editParentId || ""}
+                                onChange={(e) => setEditParentId(e.target.value || null)}
+                                className="flex-1 bg-secondary/50 rounded-lg px-2 py-1.5 text-[10px] outline-none border border-transparent focus:border-primary cursor-pointer appearance-none"
+                            >
+                                <option value="">No Parent (Root)</option>
+                                {allLocations.filter(c => c.id !== location.id).map(c => (
+                                    <option key={c.id} value={c.id}>Parent: {c.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                ) : (
+                    <div
+                        onClick={() => setSelectedLocation(location)}
+                        className={cn(
+                            "glass p-3 rounded-xl cursor-pointer transition-all border group relative",
+                            isSel ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-primary/30',
+                            depth > 0 && "ml-4 md:ml-6"
+                        )}
+                    >
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 truncate">
+                                <div className="flex items-center gap-0.5">
+                                    {hasChildren ? (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); toggleExpand(location.id); }}
+                                            className="p-0.5 hover:bg-secondary rounded transition-colors"
+                                        >
+                                            {isExp ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                        </button>
+                                    ) : (
+                                        <div className="w-5" />
+                                    )}
+                                </div>
+                                <div
+                                    className="h-3 w-3 rounded-full shrink-0 shadow-sm border border-white/10"
+                                    style={{ backgroundColor: location.color || "#4b5563" }}
+                                />
+                                <div className="truncate">
+                                    <p className="font-bold text-sm truncate">{location.name}</p>
+                                    <p className="text-[10px] text-muted-foreground uppercase font-medium tracking-tight">
+                                        {location.recursivePartCount} Total Parts
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handleEdit(location); }}
+                                    className="p-1 hover:bg-primary/20 hover:text-primary rounded transition-colors"
+                                    title="Edit Location"
+                                >
+                                    <Edit3 size={12} />
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handleDelete(location.id); }}
+                                    className="p-1 hover:bg-destructive/20 hover:text-destructive rounded transition-colors"
+                                    title="Delete Location"
+                                >
+                                    <Trash2 size={12} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {isExp && location.children && location.children.map((child: any) => renderLocation(child, depth + 1))}
+            </div>
+        );
+    };
+
     return (
         <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 min-h-0 pb-2">
             {/* Column 1: Locations List (Lg: 3/12) */}
@@ -241,7 +358,7 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                             className="w-full bg-secondary/50 rounded-lg px-2 py-1.5 text-[10px] outline-none border border-transparent focus:border-primary appearance-none cursor-pointer"
                         >
                             <option value="">No Parent (Root)</option>
-                            {initialLocations.filter(l => !l.parentId).map(l => (
+                            {allLocations.map(l => (
                                 <option key={l.id} value={l.id}>Parent: {l.name}</option>
                             ))}
                         </select>
@@ -271,181 +388,7 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                             No locations found.
                         </div>
                     ) : (
-                        hierarchicalLocations.map((parent) => (
-                            <div key={parent.id} className="space-y-1">
-                                {/* Parent Location */}
-                                {isEditing === parent.id ? (
-                                    <div className="glass p-3 rounded-xl space-y-3 ring-1 ring-primary/50">
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                type="text"
-                                                value={editName}
-                                                onChange={(e) => setEditName(e.target.value)}
-                                                className="flex-1 bg-secondary/50 rounded-lg px-3 py-1.5 text-xs outline-none border border-transparent focus:border-primary"
-                                                autoFocus
-                                            />
-                                            <button
-                                                onClick={() => handleSave(parent.id)}
-                                                className="p-2 bg-primary rounded-lg text-primary-foreground hover:opacity-90 transition-opacity"
-                                                title="Save"
-                                            >
-                                                <Check size={14} />
-                                            </button>
-                                            <button
-                                                onClick={() => setIsEditing(null)}
-                                                className="p-2 bg-secondary rounded-lg text-muted-foreground hover:bg-secondary/80 transition-opacity"
-                                                title="Cancel"
-                                            >
-                                                <X size={14} />
-                                            </button>
-                                        </div>
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div className="flex items-center gap-2">
-                                                <div className="relative group/edit">
-                                                    <input
-                                                        type="color"
-                                                        value={editColor || "#4b5563"}
-                                                        onChange={(e) => setEditColor(e.target.value)}
-                                                        className="h-6 w-6 rounded-md cursor-pointer bg-transparent border-none appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
-                                                    />
-                                                    <Palette size={10} className="absolute inset-0 m-auto pointer-events-none text-white mix-blend-difference opacity-50 group-hover/edit:opacity-100 transition-opacity" />
-                                                </div>
-                                                <span className="text-[10px] text-muted-foreground uppercase">Color</span>
-                                            </div>
-                                            <select
-                                                value={editParentId || ""}
-                                                onChange={(e) => setEditParentId(e.target.value || null)}
-                                                className="flex-1 bg-secondary/50 rounded-lg px-2 py-1.5 text-[10px] outline-none border border-transparent focus:border-primary cursor-pointer"
-                                            >
-                                                <option value="">No Parent (Root)</option>
-                                                {initialLocations.filter(l => !l.parentId && l.id !== parent.id).map(l => (
-                                                    <option key={l.id} value={l.id}>Parent: {l.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div
-                                        onClick={() => setSelectedLocation(parent)}
-                                        className={cn(
-                                            "glass p-3 rounded-xl cursor-pointer transition-all border group relative",
-                                            selectedLocation?.id === parent.id ? 'border-primary ring-1 ring-primary' : 'border-transparent'
-                                        )}
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2 truncate">
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); toggleExpand(parent.id); }}
-                                                    className="p-0.5 hover:bg-secondary rounded transition-colors"
-                                                >
-                                                    {expandedParents.has(parent.id) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                                                </button>
-                                                <div
-                                                    className="h-3 w-3 rounded-full shrink-0"
-                                                    style={{ backgroundColor: parent.color || "#4b5563" }}
-                                                />
-                                                <div className="truncate">
-                                                    <p className="font-bold text-sm truncate">{parent.name}</p>
-                                                    <p className="text-[10px] text-muted-foreground uppercase">
-                                                        {(parent as any).recursivePartCount || 0} Total Parts
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleEdit(parent); }}
-                                                    className="p-1 hover:bg-primary/20 hover:text-primary rounded transition-colors"
-                                                >
-                                                    <Edit3 size={12} />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleDelete(parent.id); }}
-                                                    className="p-1 hover:bg-destructive/20 hover:text-destructive rounded transition-colors"
-                                                >
-                                                    <Trash2 size={12} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Child Locations */}
-                                {expandedParents.has(parent.id) && parent.children.map((child) =>
-                                    isEditing === child.id ? (
-                                        <div key={child.id} className="glass p-2.5 rounded-xl space-y-2 ring-1 ring-primary/50 ml-6">
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={editName}
-                                                    onChange={(e) => setEditName(e.target.value)}
-                                                    className="flex-1 bg-secondary/50 rounded-lg px-2.5 py-1 text-xs outline-none border border-transparent focus:border-primary"
-                                                    autoFocus
-                                                />
-                                                <button
-                                                    onClick={() => handleSave(child.id)}
-                                                    className="p-1.5 bg-primary rounded-lg text-primary-foreground hover:opacity-90 transition-opacity"
-                                                    title="Save"
-                                                >
-                                                    <Check size={12} />
-                                                </button>
-                                                <button
-                                                    onClick={() => setIsEditing(null)}
-                                                    className="p-1.5 bg-secondary rounded-lg text-muted-foreground hover:bg-secondary/80 transition-opacity"
-                                                    title="Close"
-                                                >
-                                                    <X size={12} />
-                                                </button>
-                                            </div>
-                                            <select
-                                                value={editParentId || ""}
-                                                onChange={(e) => setEditParentId(e.target.value || null)}
-                                                className="w-full bg-secondary/50 rounded-lg px-2 py-1 text-[9px] outline-none border border-transparent focus:border-primary cursor-pointer"
-                                            >
-                                                {initialLocations.filter(l => !l.parentId).map(l => (
-                                                    <option key={l.id} value={l.id}>Parent: {l.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    ) : (
-                                        <div
-                                            key={child.id}
-                                            onClick={() => setSelectedLocation(child)}
-                                            className={cn(
-                                                "glass p-2.5 rounded-xl cursor-pointer transition-all border group relative ml-6",
-                                                selectedLocation?.id === child.id ? 'border-primary ring-1 ring-primary' : 'border-transparent'
-                                            )}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2 truncate">
-                                                    <div
-                                                        className="w-1 h-4 rounded-full shrink-0"
-                                                        style={{ backgroundColor: parent.color || "#4b5563" }}
-                                                    />
-                                                    <div className="truncate">
-                                                        <p className="font-medium text-xs truncate">{child.name}</p>
-                                                        <p className="text-[9px] text-muted-foreground uppercase">{child.parts.length} Parts</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handleEdit(child); }}
-                                                        className="p-1 hover:bg-primary/20 hover:text-primary rounded transition-colors"
-                                                    >
-                                                        <Edit3 size={12} />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handleDelete(child.id); }}
-                                                        className="p-1 hover:bg-destructive/20 hover:text-destructive rounded transition-colors"
-                                                    >
-                                                        <Trash2 size={12} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )
-                                )}
-                            </div>
-                        ))
+                        hierarchicalLocations.map(loc => renderLocation(loc))
                     )}
                 </div>
             </div>

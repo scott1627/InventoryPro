@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { X, Save, Package, MapPin, Tag, Hash, FileText, Upload, Loader2, CheckCircle2, Trash2, AlertTriangle, Bell } from "lucide-react";
 import { updatePart, deletePart } from "../app/actions/parts";
 import CategoryPicker from "./CategoryPicker";
+import LocationPicker from "./LocationPicker";
 
 interface Part {
     id: string;
@@ -41,6 +42,7 @@ export default function EditPartModal({ isOpen, onClose, part, categories, locat
     const [error, setError] = useState<string | null>(null);
     const [mounted, setMounted] = useState(false);
     const [selectedParentId, setSelectedParentId] = useState<string>(part.storageLocation.parent?.id || part.storageLocationId);
+    const [selectedLocationId, setSelectedLocationId] = useState(part.storageLocationId);
     const [alertsEnabled, setAlertsEnabled] = useState(part.lowStockAlertEnabled);
 
     useEffect(() => {
@@ -169,37 +171,15 @@ export default function EditPartModal({ isOpen, onClose, part, categories, locat
                                         onSelect={setSelectedCategoryId}
                                     />
                                 </div>
-                                <div className="space-y-2">
+                                <div className="col-span-2 space-y-2">
                                     <label className="text-sm font-medium flex items-center gap-2">
-                                        <MapPin size={14} className="text-primary" /> Storage Area
+                                        <MapPin size={14} className="text-primary" /> Storage Location
                                     </label>
-                                    <select
-                                        name="storageAreaId"
-                                        value={selectedParentId}
-                                        onChange={(e) => setSelectedParentId(e.target.value)}
-                                        className="w-full px-4 py-2.5 bg-secondary/50 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer"
-                                    >
-                                        <option value="">Select Area...</option>
-                                        {parentLocations.map(loc => (
-                                            <option key={loc.id} value={loc.id}>{loc.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium flex items-center gap-2">
-                                        <Hash size={14} className="text-primary" /> Specific Bin
-                                    </label>
-                                    <select
-                                        name="locationId"
-                                        disabled={!selectedParentId}
-                                        defaultValue={part.storageLocationId}
-                                        className="w-full px-4 py-2.5 bg-secondary/50 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer disabled:opacity-50"
-                                    >
-                                        <option value="">{selectedParentId ? "Select Bin..." : "Select Area first..."}</option>
-                                        {availableBins.map(loc => (
-                                            <option key={loc.id} value={loc.id}>{loc.name}</option>
-                                        ))}
-                                    </select>
+                                    <LocationPicker 
+                                        locations={locations}
+                                        value={selectedLocationId}
+                                        onSelect={setSelectedLocationId}
+                                    />
                                 </div>
                             </div>
 

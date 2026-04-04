@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { X, Plus, Package, MapPin, Tag, Hash, FileText, Upload, Loader2, CheckCircle2, Bell } from "lucide-react";
 import { addPart } from "../app/actions/parts";
 import CategoryPicker from "./CategoryPicker";
+import LocationPicker from "./LocationPicker";
 
 interface AddPartModalProps {
     isOpen: boolean;
@@ -21,20 +22,15 @@ export default function AddPartModal({ isOpen, onClose, categories, locations, i
     const [error, setError] = useState<string | null>(null);
     const [mounted, setMounted] = useState(false);
     const [selectedParentId, setSelectedParentId] = useState<string>("");
+    const [selectedLocationId, setSelectedLocationId] = useState(initialLocationId || "");
     const [alertsEnabled, setAlertsEnabled] = useState(false);
 
     useEffect(() => {
         setMounted(true);
         if (initialLocationId) {
-            const loc = locations.find(l => l.id === initialLocationId);
-            if (loc?.parentId) {
-                setSelectedParentId(loc.parentId);
-            } else if (loc) {
-                // If it's already a parent, select it
-                setSelectedParentId(loc.id);
-            }
+            setSelectedLocationId(initialLocationId);
         }
-    }, [initialLocationId, locations]);
+    }, [initialLocationId]);
 
     const parentLocations = useMemo(() => {
         return locations.filter(loc => !loc.parentId);
@@ -146,37 +142,15 @@ export default function AddPartModal({ isOpen, onClose, categories, locations, i
                                         onSelect={setSelectedCategoryId}
                                     />
                                 </div>
-                                <div className="space-y-2">
+                                <div className="col-span-2 space-y-2">
                                     <label className="text-sm font-medium flex items-center gap-2">
-                                        <MapPin size={14} className="text-primary" /> Storage Area
+                                        <MapPin size={14} className="text-primary" /> Storage Location
                                     </label>
-                                    <select
-                                        name="storageAreaId"
-                                        value={selectedParentId}
-                                        onChange={(e) => setSelectedParentId(e.target.value)}
-                                        className="w-full px-4 py-2.5 bg-secondary/50 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer"
-                                    >
-                                        <option value="">Select Area...</option>
-                                        {parentLocations.map(loc => (
-                                            <option key={loc.id} value={loc.id}>{loc.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium flex items-center gap-2">
-                                        <Hash size={14} className="text-primary" /> Specific Bin
-                                    </label>
-                                    <select
-                                        name="locationId"
-                                        defaultValue={initialLocationId || ""}
-                                        disabled={!selectedParentId}
-                                        className="w-full px-4 py-2.5 bg-secondary/50 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer disabled:opacity-50"
-                                    >
-                                        <option value="">{selectedParentId ? "Select Bin..." : "Select Area first..."}</option>
-                                        {availableBins.map(loc => (
-                                            <option key={loc.id} value={loc.id}>{loc.name}</option>
-                                        ))}
-                                    </select>
+                                    <LocationPicker 
+                                        locations={locations}
+                                        value={selectedLocationId}
+                                        onSelect={setSelectedLocationId}
+                                    />
                                 </div>
                             </div>
 
