@@ -13,8 +13,7 @@ export async function addPart(formData: FormData) {
     try {
         const name = formData.get("name") as string;
         const categoryId = formData.get("categoryId") as string;
-        const storageLocationId = formData.get("locationId") as string;
-        const storageAreaId = formData.get("storageAreaId") as string;
+        const storageLocationId = formData.get("storageLocationId") as string;
         const stock = parseInt(formData.get("stock") as string) || 0;
         const description = formData.get("description") as string;
         const minStock = parseInt(formData.get("minStock") as string) || 0;
@@ -59,7 +58,7 @@ export async function addPart(formData: FormData) {
             finalCategoryId = unassigned.id;
         }
 
-        let finalLocationId = storageLocationId || storageAreaId;
+        let finalLocationId = storageLocationId;
         if (!finalLocationId) {
             let unassigned = await prisma.storageLocation.findFirst({
                 where: { name: "Unassigned" }
@@ -118,8 +117,7 @@ export async function updatePart(id: string, formData: FormData) {
     try {
         const name = formData.get("name") as string;
         const categoryId = formData.get("categoryId") as string;
-        const storageLocationId = formData.get("locationId") as string;
-        const storageAreaId = formData.get("storageAreaId") as string;
+        const storageLocationId = formData.get("storageLocationId") as string;
         const stock = parseInt(formData.get("stock") as string) || 0;
         const description = formData.get("description") as string;
         const minStock = parseInt(formData.get("minStock") as string) || 0;
@@ -161,7 +159,7 @@ export async function updatePart(id: string, formData: FormData) {
             finalCategoryId = unassigned.id;
         }
 
-        let finalLocationId = storageLocationId || storageAreaId;
+        let finalLocationId = storageLocationId;
         if (!finalLocationId) {
             let unassigned = await prisma.storageLocation.findFirst({
                 where: { name: "Unassigned" }

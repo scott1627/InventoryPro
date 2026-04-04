@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.1] - 2026-04-04
+
+### Fixed
+- Issue where selecting a storage location when adding/updating a part was ignored (always defaulted to Unassigned).
+
 ## [1.2.0] - 2026-04-04
 
 ### Added
