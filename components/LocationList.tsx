@@ -145,6 +145,7 @@ export default function LocationList({ initialLocations, allCategories, allLocat
         setSelectedPart(null);
         if (selectedLocation) {
             setNewLocationParentId(selectedLocation.id);
+            setNewLocationColor(selectedLocation.color);
         }
     }, [selectedLocation?.id, partSearch]);
 
@@ -354,7 +355,14 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                         </div>
                         <select
                             value={newLocationParentId}
-                            onChange={(e) => setNewLocationParentId(e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setNewLocationParentId(val);
+                                if (val) {
+                                    const parent = initialLocations.find(l => l.id === val);
+                                    if (parent?.color) setNewLocationColor(parent.color);
+                                }
+                            }}
                             className="w-full bg-secondary/50 rounded-lg px-2 py-1.5 text-[10px] outline-none border border-transparent focus:border-primary appearance-none cursor-pointer"
                         >
                             <option value="">No Parent (Root)</option>
