@@ -30,9 +30,10 @@ interface Part {
 interface PartDetailsProps {
     part: Part;
     isInline?: boolean;
+    categoryPath?: string;
 }
 
-export default function PartDetails({ part, isInline }: PartDetailsProps) {
+export default function PartDetails({ part, isInline, categoryPath }: PartDetailsProps) {
     const [showDatasheet, setShowDatasheet] = useState(false);
     const [adjustQuantity, setAdjustQuantity] = useState(1);
     const [isAdjusting, setIsAdjusting] = useState(false);
@@ -69,7 +70,7 @@ export default function PartDetails({ part, isInline }: PartDetailsProps) {
 
             <div>
                 <h2 className="text-xl font-bold">{part.name}</h2>
-                <p className="text-sm text-muted-foreground">{part.category.name}</p>
+                <p className="text-sm text-muted-foreground">{categoryPath || part.category.name}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

@@ -13,7 +13,7 @@ interface Part {
     datasheetUrl: string | null;
     categoryId: string;
     storageLocationId: string;
-    category: { name: string };
+    category: { id: string; name: string; parentId?: string | null };
     storageLocation: {
         name: string;
         color: string | null;
@@ -27,7 +27,7 @@ interface Part {
 
 interface PartsListProps {
     initialParts: Part[];
-    categories: { id: string; name: string }[];
+    categories: { id: string; name: string; parentId?: string | null }[];
     locations: { id: string; name: string }[];
 }
 
@@ -37,15 +37,29 @@ export default function PartsList({ initialParts, categories, locations }: Parts
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingPart, setEditingPart] = useState<Part | null>(null);
 
+    const categoryPaths = useMemo(() => {
+        const paths: Record<string, string> = {};
+        const getPath = (id: string): string => {
+            const cat = categories.find(c => c.id === id);
+            if (!cat) return "";
+            const parentPath = cat.parentId ? getPath(cat.parentId) : "";
+            return parentPath ? `${parentPath} > ${cat.name}` : cat.name;
+        };
+        categories.forEach(cat => {
+            paths[cat.id] = getPath(cat.id);
+        });
+        return paths;
+    }, [categories]);
+
     const filteredParts = useMemo(() => {
         const query = searchQuery.toLowerCase();
         return initialParts.filter(part =>
             part.name.toLowerCase().includes(query) ||
-            part.category.name.toLowerCase().includes(query) ||
+            (categoryPaths[part.categoryId] || "").toLowerCase().includes(query) ||
             part.storageLocation.name.toLowerCase().includes(query) ||
             part.description?.toLowerCase().includes(query)
         );
-    }, [initialParts, searchQuery]);
+    }, [initialParts, searchQuery, categoryPaths]);
 
     // Unified selection logic: handle initial list, search updates, and empty results
     useEffect(() => {
@@ -118,7 +132,6 @@ export default function PartsList({ initialParts, categories, locations }: Parts
                                             <p className="text-xs text-muted-foreground line-clamp-1">{part.description}</p>
                                         )}
                                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                            <span className="bg-secondary px-2 py-0.5 rounded uppercase tracking-wider">{part.category.name}</span>
                                             <span className="flex items-center gap-2">
                                                 <div
                                                     className="h-2 w-2 rounded-full border border-white/10"
@@ -130,6 +143,7 @@ export default function PartsList({ initialParts, categories, locations }: Parts
                                                     {part.storageLocation.name}
                                                 </span>
                                             </span>
+                                            <span className="bg-secondary px-2 py-0.5 rounded uppercase tracking-wider">{categoryPaths[part.categoryId]}</span>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-6">
@@ -167,7 +181,7 @@ export default function PartsList({ initialParts, categories, locations }: Parts
                                 {/* Mobile Inline Details */}
                                 {selectedPart?.id === part.id && (
                                     <div className="lg:hidden">
-                                        <PartDetails part={part} isInline={true} />
+                                        <PartDetails part={part} isInline={true} categoryPath={categoryPaths[part.categoryId]} />
                                     </div>
                                 )}
                             </div>
@@ -176,7 +190,7 @@ export default function PartsList({ initialParts, categories, locations }: Parts
                 </div>
 
                 <div className="hidden lg:block space-y-6">
-                    {selectedPart && <PartDetails part={selectedPart} />}
+                    {selectedPart && <PartDetails part={selectedPart} categoryPath={categoryPaths[selectedPart.categoryId]} />}
                 </div>
 
                 {editingPart && (

@@ -46,7 +46,7 @@ interface Location {
 
 interface LocationListProps {
     initialLocations: Location[];
-    allCategories: { id: string; name: string }[];
+    allCategories: { id: string; name: string; parentId?: string | null }[];
     allLocations: { id: string; name: string }[];
 }
 
@@ -70,6 +70,20 @@ export default function LocationList({ initialLocations, allCategories, allLocat
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
+
+    const categoryPaths = useMemo(() => {
+        const paths: Record<string, string> = {};
+        const getPath = (id: string): string => {
+            const cat = allCategories.find(c => c.id === id);
+            if (!cat) return "";
+            const parentPath = cat.parentId ? getPath(cat.parentId) : "";
+            return parentPath ? `${parentPath} > ${cat.name}` : cat.name;
+        };
+        allCategories.forEach(cat => {
+            paths[cat.id] = getPath(cat.id);
+        });
+        return paths;
+    }, [allCategories]);
 
     // Organize locations into hierarchy and calculate recursive counts
     const hierarchicalLocations = useMemo(() => {
@@ -518,7 +532,7 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                                                         <p className="text-[10px] text-muted-foreground truncate italic">{part.description}</p>
                                                     )}
                                                     <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
-                                                        <Package size={10} /> {part.category.name}
+                                                        <Package size={10} /> {categoryPaths[part.categoryId]}
                                                     </p>
                                                 </div>
                                             </div>
@@ -558,7 +572,7 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                                         {/* Mobile Inline Details */}
                                         {selectedPart?.id === part.id && (
                                             <div className="lg:hidden mt-4">
-                                                <PartDetails part={part} isInline={true} />
+                                                <PartDetails part={part} isInline={true} categoryPath={categoryPaths[part.categoryId]} />
                                             </div>
                                         )}
                                     </div>
@@ -578,7 +592,7 @@ export default function LocationList({ initialLocations, allCategories, allLocat
             {selectedPart && (
                 <div className="hidden lg:block lg:col-span-4 animate-in slide-in-from-right-4 duration-300">
                     <div className="sticky top-24">
-                        <PartDetails part={selectedPart} />
+                        <PartDetails part={selectedPart} categoryPath={categoryPaths[selectedPart.categoryId]} />
                     </div>
                 </div>
             )}
