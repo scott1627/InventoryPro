@@ -12,28 +12,40 @@ interface Location {
 
 interface LocationPickerProps {
     locations: Location[];
-    value: string;
-    onSelect: (id: string) => void;
+    value: string | null;
+    onSelect: (id: string | null) => void;
     placeholder?: string;
+    excludeId?: string;
 }
 
-export default function LocationPicker({ locations, value, onSelect, placeholder = "Select Location..." }: LocationPickerProps) {
+export default function LocationPicker({ locations, value, onSelect, placeholder = "Select Location...", excludeId }: LocationPickerProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState("");
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
     // Build hierarchy
     const hierarchicalLocations = useMemo(() => {
+        // Function to check if a location is or is a descendant of excludeId
+        const isForbidden = (locId: string): boolean => {
+            if (!excludeId) return false;
+            if (locId === excludeId) return true;
+            
+            const loc = locations.find(l => l.id === locId);
+            if (!loc || !loc.parentId) return false;
+            return isForbidden(loc.parentId);
+        };
+
         const build = (parentId: string | null = null): any[] => {
             return locations
                 .filter(l => l.parentId === parentId)
+                .filter(l => !excludeId || !isForbidden(l.id))
                 .map(l => ({
                     ...l,
                     children: build(l.id)
                 }));
         };
         return build(null);
-    }, [locations]);
+    }, [locations, excludeId]);
 
     // Get current selection path for the display
     const currentPath = useMemo(() => {
@@ -43,7 +55,8 @@ export default function LocationPicker({ locations, value, onSelect, placeholder
             if (!loc) return [];
             return [...getPath(loc.parentId || null), loc.name].filter(Boolean);
         };
-        return getPath(value).join(" > ");
+        const pathArr = getPath(value);
+        return pathArr.length > 0 ? pathArr.join(" > ") : null;
     }, [value, locations]);
 
     const toggleExpand = (id: string, e: React.MouseEvent) => {
@@ -97,7 +110,10 @@ export default function LocationPicker({ locations, value, onSelect, placeholder
                             <div className="w-5" />
                         )}
                         <div 
-                            className="h-3 w-3 rounded-full shrink-0 shadow-sm border border-white/10"
+                            className={cn(
+                                "h-3 w-3 rounded-full shrink-0 shadow-sm border border-white/10",
+                                isSel ? "border-white/30" : ""
+                            )}
                             style={{ backgroundColor: node.color || "#4b5563" }}
                         />
                     </div>
@@ -131,7 +147,7 @@ export default function LocationPicker({ locations, value, onSelect, placeholder
                         className="fixed inset-0 z-[10001]" 
                         onClick={() => setIsOpen(false)} 
                     />
-                    <div className="absolute top-full left-0 right-0 mt-2 z-[10002] bg-card border border-border shadow-2xl rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[300px]">
+                    <div className="absolute top-full left-0 right-0 mt-2 z-[10002] bg-card border border-border shadow-2xl rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[400px]">
                         <div className="p-3 border-b border-border bg-secondary/30 shrink-0">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
@@ -155,18 +171,42 @@ export default function LocationPicker({ locations, value, onSelect, placeholder
                             </div>
                         </div>
                         <div className="p-2 overflow-y-auto custom-scrollbar flex-1 space-y-1">
-                            {hierarchicalLocations.length === 0 ? (
+                            {/* None / Root Option */}
+                            <div
+                                onClick={() => {
+                                    onSelect(null);
+                                    setIsOpen(false);
+                                }}
+                                className={cn(
+                                    "flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors group mb-1 border-b border-border/50",
+                                    !value ? "bg-primary text-primary-foreground font-bold" : "hover:bg-secondary text-foreground"
+                                )}
+                            >
+                                <div className="w-5 flex items-center justify-center">
+                                    <X size={14} className={cn(!value ? "text-primary-foreground/70" : "text-muted-foreground/50")} />
+                                </div>
+                                <span className="text-sm">None (Root Location)</span>
+                                {!value && <Check size={14} className="ml-auto shrink-0" />}
+                            </div>
+
+                            {hierarchicalLocations.length === 0 && !search ? (
                                 <div className="p-4 text-center text-xs text-muted-foreground italic">
                                     No locations available.
                                 </div>
                             ) : (
                                 hierarchicalLocations.map(loc => renderNode(loc))
                             )}
+
+                            {hierarchicalLocations.length === 0 && search && (
+                                <div className="p-4 text-center text-xs text-muted-foreground italic">
+                                    No locations match your search.
+                                </div>
+                            )}
                         </div>
                     </div>
                 </>
             )}
-            <input type="hidden" name="storageLocationId" value={value} />
+            <input type="hidden" name="storageLocationId" value={value || ""} />
         </div>
     );
 }

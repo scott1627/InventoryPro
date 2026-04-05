@@ -11,28 +11,40 @@ interface Category {
 
 interface CategoryPickerProps {
     categories: Category[];
-    value: string;
-    onSelect: (id: string) => void;
+    value: string | null;
+    onSelect: (id: string | null) => void;
     placeholder?: string;
+    excludeId?: string;
 }
 
-export default function CategoryPicker({ categories, value, onSelect, placeholder = "Select Category..." }: CategoryPickerProps) {
+export default function CategoryPicker({ categories, value, onSelect, placeholder = "Select Category...", excludeId }: CategoryPickerProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState("");
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
     // Build hierarchy
     const hierarchicalCategories = useMemo(() => {
+        // Function to check if a category is or is a descendant of excludeId
+        const isForbidden = (catId: string): boolean => {
+            if (!excludeId) return false;
+            if (catId === excludeId) return true;
+            
+            const cat = categories.find(c => c.id === catId);
+            if (!cat || !cat.parentId) return false;
+            return isForbidden(cat.parentId);
+        };
+
         const build = (parentId: string | null = null): any[] => {
             return categories
                 .filter(c => c.parentId === parentId)
+                .filter(c => !excludeId || !isForbidden(c.id))
                 .map(c => ({
                     ...c,
                     children: build(c.id)
                 }));
         };
         return build(null);
-    }, [categories]);
+    }, [categories, excludeId]);
 
     // Get current selection path for the display
     const currentPath = useMemo(() => {
@@ -42,7 +54,8 @@ export default function CategoryPicker({ categories, value, onSelect, placeholde
             if (!cat) return [];
             return [...getPath(cat.parentId || ""), cat.name].filter(Boolean);
         };
-        return getPath(value).join(" > ");
+        const pathArr = getPath(value);
+        return pathArr.length > 0 ? pathArr.join(" > ") : null;
     }, [value, categories]);
 
     const toggleExpand = (id: string, e: React.MouseEvent) => {
@@ -58,13 +71,13 @@ export default function CategoryPicker({ categories, value, onSelect, placeholde
         const isExp = expanded.has(node.id) || search.length > 0;
         const isSel = value === node.id;
         
-        // Simple search filtering
-        if (search && !node.name.toLowerCase().includes(search.toLowerCase()) && !node.children.some((c: any) => c.name.toLowerCase().includes(search.toLowerCase()))) {
-            if (!node.children.some((c: any) => search && c.name.toLowerCase().includes(search.toLowerCase()))) {
-                 // But wait, if a child matches, we should show the parent too. 
-                 // Let's keep it simple for now or implement proper recursive filter.
-            }
-        }
+        const matchesSearch = (n: any): boolean => {
+            if (n.name.toLowerCase().includes(search.toLowerCase())) return true;
+            if (n.children && n.children.some((c: any) => matchesSearch(c))) return true;
+            return false;
+        };
+
+        if (search && !matchesSearch(node)) return null;
 
         return (
             <div key={node.id} className="space-y-1">
@@ -75,7 +88,7 @@ export default function CategoryPicker({ categories, value, onSelect, placeholde
                     }}
                     className={cn(
                         "flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors group",
-                        isSel ? "bg-primary text-primary-foreground" : "hover:bg-secondary text-foreground"
+                        isSel ? "bg-primary text-primary-foreground font-bold" : "hover:bg-secondary text-foreground"
                     )}
                     style={{ marginLeft: `${depth * 1.5}rem` }}
                 >
@@ -96,7 +109,7 @@ export default function CategoryPicker({ categories, value, onSelect, placeholde
                         )}
                         <Folder size={14} className={cn(isSel ? "text-primary-foreground" : "text-primary")} />
                     </div>
-                    <span className="text-sm font-medium truncate">{node.name}</span>
+                    <span className="text-sm truncate">{node.name}</span>
                     {isSel && <Check size={14} className="ml-auto shrink-0" />}
                 </div>
                 {isExp && node.children && node.children.map((child: any) => renderNode(child, depth + 1))}
@@ -126,7 +139,7 @@ export default function CategoryPicker({ categories, value, onSelect, placeholde
                         className="fixed inset-0 z-[10001]" 
                         onClick={() => setIsOpen(false)} 
                     />
-                    <div className="absolute top-full left-0 right-0 mt-2 z-[10002] bg-card border border-border shadow-2xl rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[300px]">
+                    <div className="absolute top-full left-0 right-0 mt-2 z-[10002] bg-card border border-border shadow-2xl rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[400px]">
                         <div className="p-3 border-b border-border bg-secondary/30 shrink-0">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
@@ -150,18 +163,42 @@ export default function CategoryPicker({ categories, value, onSelect, placeholde
                             </div>
                         </div>
                         <div className="p-2 overflow-y-auto custom-scrollbar flex-1 space-y-1">
-                            {hierarchicalCategories.length === 0 ? (
+                            {/* None / Root Option */}
+                            <div
+                                onClick={() => {
+                                    onSelect(null);
+                                    setIsOpen(false);
+                                }}
+                                className={cn(
+                                    "flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors group mb-1 border-b border-border/50",
+                                    !value ? "bg-primary text-primary-foreground font-bold" : "hover:bg-secondary text-foreground"
+                                )}
+                            >
+                                <div className="w-5 flex items-center justify-center">
+                                    <X size={14} className={cn(!value ? "text-primary-foreground/70" : "text-muted-foreground/50")} />
+                                </div>
+                                <span className="text-sm">None (Root Category)</span>
+                                {!value && <Check size={14} className="ml-auto shrink-0" />}
+                            </div>
+
+                            {hierarchicalCategories.length === 0 && !search ? (
                                 <div className="p-4 text-center text-xs text-muted-foreground italic">
                                     No categories available.
                                 </div>
                             ) : (
                                 hierarchicalCategories.map(cat => renderNode(cat))
                             )}
+                            
+                            {hierarchicalCategories.length === 0 && search && (
+                                <div className="p-4 text-center text-xs text-muted-foreground italic">
+                                    No categories match your search.
+                                </div>
+                            )}
                         </div>
                     </div>
                 </>
             )}
-            <input type="hidden" name="categoryId" value={value} />
+            <input type="hidden" name="categoryId" value={value || ""} />
         </div>
     );
 }

@@ -7,6 +7,7 @@ import { deletePart } from "../app/actions/parts";
 import EditPartModal from "./EditPartModal";
 import AddPartModal from "./AddPartModal";
 import PartDetails from "./PartDetails";
+import LocationPicker from "./LocationPicker";
 
 interface Part {
     id: string;
@@ -268,16 +269,13 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                                 </div>
                                 <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Theme Color</span>
                             </div>
-                            <select
-                                value={editParentId || ""}
-                                onChange={(e) => setEditParentId(e.target.value || null)}
-                                className="flex-1 bg-secondary/50 rounded-lg px-2 py-1.5 text-[10px] outline-none border border-transparent focus:border-primary cursor-pointer appearance-none"
-                            >
-                                <option value="">No Parent (Root)</option>
-                                {allLocations.filter(c => c.id !== location.id).map(c => (
-                                    <option key={c.id} value={c.id}>Parent: {c.name}</option>
-                                ))}
-                            </select>
+                            <LocationPicker 
+                                locations={allLocations}
+                                value={editParentId}
+                                onSelect={(id) => setEditParentId(id)}
+                                excludeId={location.id}
+                                placeholder="No Parent (Root)"
+                            />
                         </div>
                     </div>
                 ) : (
@@ -379,23 +377,18 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                             </div>
                             <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Select Theme</span>
                         </div>
-                        <select
+                        <LocationPicker 
+                            locations={allLocations}
                             value={newLocationParentId}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                setNewLocationParentId(val);
-                                if (val) {
-                                    const parent = initialLocations.find(l => l.id === val);
+                            onSelect={(id) => {
+                                setNewLocationParentId(id || "");
+                                if (id) {
+                                    const parent = initialLocations.find(l => l.id === id);
                                     if (parent?.color) setNewLocationColor(parent.color);
                                 }
                             }}
-                            className="w-full bg-secondary/50 rounded-lg px-2 py-1.5 text-[10px] outline-none border border-transparent focus:border-primary appearance-none cursor-pointer"
-                        >
-                            <option value="">No Parent (Root)</option>
-                            {allLocations.map(l => (
-                                <option key={l.id} value={l.id}>Parent: {l.name}</option>
-                            ))}
-                        </select>
+                            placeholder="No Parent (Root)"
+                        />
                     </div>
 
                     {/* Search Locations */}

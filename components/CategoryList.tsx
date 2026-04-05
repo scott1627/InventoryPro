@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Search, Folder, MapPin, Edit3, Trash2, Plus, ChevronRight, ChevronDown, Hash, Package, X, FileText, Check } from "lucide-react";
+import { Folder, ChevronRight, ChevronDown, Plus, Search, MoreVertical, Edit2, Edit3, Trash2, X, Check, Tag, Package, Hash, FileText, MapPin } from "lucide-react";
+import CategoryPicker from "./CategoryPicker";
 import { updateCategory, deleteCategory, addCategory } from "../app/actions/categories";
 import { deletePart } from "../app/actions/parts";
 import EditPartModal from "./EditPartModal";
@@ -202,16 +203,13 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
                                 <X size={14} />
                             </button>
                         </div>
-                        <select
-                            value={editParentId || ""}
-                            onChange={(e) => setEditParentId(e.target.value || null)}
-                            className="w-full bg-secondary/50 rounded-lg px-2 py-1.5 text-[10px] outline-none border border-transparent focus:border-primary cursor-pointer appearance-none"
-                        >
-                            <option value="">No Parent (Root)</option>
-                            {allCategories.filter(c => c.id !== category.id).map(c => (
-                                <option key={c.id} value={c.id}>Parent: {c.name}</option>
-                            ))}
-                        </select>
+                        <CategoryPicker 
+                            categories={allCategories}
+                            value={editParentId}
+                            onSelect={(id) => setEditParentId(id)}
+                            excludeId={category.id}
+                            placeholder="No Parent (Root)"
+                        />
                     </div>
                 ) : (
                     <div
@@ -295,16 +293,12 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
                                 <Plus size={16} />
                             </button>
                         </div>
-                        <select
+                        <CategoryPicker 
+                            categories={allCategories}
                             value={newCategoryParentId}
-                            onChange={(e) => setNewCategoryParentId(e.target.value)}
-                            className="w-full bg-secondary/50 rounded-lg px-2 py-1.5 text-[10px] outline-none border border-transparent focus:border-primary appearance-none cursor-pointer"
-                        >
-                            <option value="">No Parent (Root)</option>
-                            {allCategories.map(c => (
-                                <option key={c.id} value={c.id}>Parent: {c.name}</option>
-                            ))}
-                        </select>
+                            onSelect={(id) => setNewCategoryParentId(id || "")}
+                            placeholder="No Parent (Root)"
+                        />
                     </div>
 
                     {/* Search Categories */}
