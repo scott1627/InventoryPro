@@ -495,8 +495,12 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                                     >
                                         <div className="flex items-center justify-between gap-4">
                                             <div className="flex items-center gap-4 truncate">
-                                                <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-                                                    <Hash size={18} className="text-muted-foreground" />
+                                                <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
+                                                    {part.imageUrl ? (
+                                                        <img src={part.imageUrl} alt={part.name} className="h-full w-full object-cover" />
+                                                    ) : (
+                                                        <Hash size={18} className="text-muted-foreground" />
+                                                    )}
                                                 </div>
                                                 <div className="truncate">
                                                     <p className="font-bold truncate flex items-center gap-2">

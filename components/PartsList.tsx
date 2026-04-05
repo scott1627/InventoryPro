@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Search, Edit3, Trash2, MapPin, Filter, X, FileText } from "lucide-react";
+import { Search, Edit3, Trash2, MapPin, Filter, X, FileText, Hash } from "lucide-react";
 import PartDetails from "./PartDetails";
 import EditPartModal from "./EditPartModal";
 import { deletePart } from "../app/actions/parts";
@@ -132,30 +132,39 @@ export default function PartsList({ initialParts, categories, locations }: Parts
                                     selectedPart?.id === part.id ? 'border-primary ring-1 ring-primary' : 'border-transparent'
                                 )}
                             >
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <h3 className="font-bold flex items-center gap-2">
-                                            {part.name}
-                                            {part.datasheetUrl && (
-                                                <FileText size={14} className="text-blue-500" title="Datasheet Available" />
+                                <div className="flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-4 truncate">
+                                        <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
+                                            {part.imageUrl ? (
+                                                <img src={part.imageUrl} alt={part.name} className="h-full w-full object-cover" />
+                                            ) : (
+                                                <Hash size={18} className="text-muted-foreground" />
                                             )}
-                                        </h3>
-                                        {part.description && (
-                                            <p className="text-xs text-muted-foreground line-clamp-1">{part.description}</p>
-                                        )}
-                                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                            <span className="flex items-center gap-2">
-                                                <div
-                                                    className="h-2 w-2 rounded-full border border-white/10"
-                                                    style={{ backgroundColor: part.storageLocation.color || part.storageLocation.parent?.color || "#4b5563" }}
-                                                />
-                                                <span className="flex items-center gap-1">
-                                                    <MapPin size={10} />
-                                                    {part.storageLocation.parent && <span className="text-muted-foreground">{part.storageLocation.parent.name} / </span>}
-                                                    {part.storageLocation.name}
+                                        </div>
+                                        <div className="space-y-1 truncate">
+                                            <h3 className="font-bold flex items-center gap-2 truncate">
+                                                <span className="truncate">{part.name}</span>
+                                                {part.datasheetUrl && (
+                                                    <FileText size={14} className="text-blue-500 shrink-0" title="Datasheet Available" />
+                                                )}
+                                            </h3>
+                                            {part.description && (
+                                                <p className="text-xs text-muted-foreground line-clamp-1 italic">{part.description}</p>
+                                            )}
+                                            <div className="flex items-center gap-3 text-[10px] text-muted-foreground truncate">
+                                                <span className="flex items-center gap-1.5 truncate">
+                                                    <div
+                                                        className="h-2 w-2 rounded-full border border-white/10 shrink-0"
+                                                        style={{ backgroundColor: part.storageLocation.color || part.storageLocation.parent?.color || "#4b5563" }}
+                                                    />
+                                                    <span className="flex items-center gap-1 truncate font-medium">
+                                                        <MapPin size={10} />
+                                                        {part.storageLocation.parent && <span className="opacity-60">{part.storageLocation.parent.name} / </span>}
+                                                        {part.storageLocation.name}
+                                                    </span>
                                                 </span>
-                                            </span>
-                                            <span className="bg-secondary px-2 py-0.5 rounded uppercase tracking-wider">{categoryPaths[part.categoryId]}</span>
+                                                <span className="bg-secondary/80 px-2 py-0.5 rounded uppercase tracking-tighter text-[9px] font-bold border border-white/5">{categoryPaths[part.categoryId]}</span>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-6">
