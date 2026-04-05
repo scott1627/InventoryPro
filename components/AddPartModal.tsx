@@ -126,6 +126,7 @@ export default function AddPartModal({ isOpen, onClose, categories, locations, i
                                     name="name"
                                     type="text"
                                     required
+                                    autoFocus
                                     placeholder="e.g. ESP32-WROOM-32"
                                     className="w-full px-4 py-2.5 bg-secondary/50 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                                 />
