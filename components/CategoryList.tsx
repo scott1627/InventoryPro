@@ -186,7 +186,7 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
         const isExp = expandedCategories.has(category.id);
 
         return (
-            <div key={category.id} className="space-y-1">
+            <div key={category.id} className={cn("space-y-1", isEditing === category.id && "relative z-[30]")}>
                 {isEditing === category.id ? (
                     <div className={cn("glass p-3 rounded-xl space-y-3 ring-1 ring-primary/50 min-w-fit", depth > 0 && "ml-4 md:ml-6")}>
                         <div className="flex items-center gap-2">
@@ -276,8 +276,8 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
             {/* Column 1: Categories List */}
             <div className="lg:col-span-3 flex flex-col gap-4 min-h-0 h-full overflow-hidden">
                 <div className="flex flex-col gap-2">
-                    {/* Add Category */}
-                    <div className="glass p-3 rounded-xl space-y-3">
+                    {/* Add Category Form */}
+                    <div className="glass p-3 rounded-xl space-y-3 relative z-[30]">
                         <div className="flex items-center gap-2">
                             <input
                                 type="text"

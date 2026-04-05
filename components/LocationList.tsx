@@ -239,7 +239,7 @@ export default function LocationList({ initialLocations, allCategories, allLocat
         const isExp = expandedParents.has(location.id);
 
         return (
-            <div key={location.id} className="space-y-1">
+            <div key={location.id} className={cn("space-y-1", isEditing === location.id && "relative z-[30]")}>
                 {isEditing === location.id ? (
                     <div className={cn("glass p-3 rounded-xl space-y-3 ring-1 ring-primary/50 min-w-fit", depth > 0 && "ml-4 md:ml-6")}>
                         <div className="flex items-center gap-2">
@@ -349,7 +349,7 @@ export default function LocationList({ initialLocations, allCategories, allLocat
             <div className="lg:col-span-3 flex flex-col gap-4 min-h-0 h-full overflow-hidden">
                 <div className="flex flex-col gap-2">
                     {/* Add Location Form */}
-                    <div className="glass p-3 rounded-xl space-y-3">
+                    <div className="glass p-3 rounded-xl space-y-3 relative z-[30]">
                         <div className="flex items-center gap-2">
                             <input
                                 type="text"
