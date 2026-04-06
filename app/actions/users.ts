@@ -20,12 +20,13 @@ export async function getUsers() {
             id: true,
             username: true,
             role: true,
+            timezone: true,
             createdAt: true
         }
     });
 }
 
-export async function createUser(username: string, passwordRaw: string, role: "USER" | "ADMIN") {
+export async function createUser(username: string, passwordRaw: string, role: "USER" | "ADMIN", timezone: string = "UTC") {
     try {
         await requireAdmin();
         const hashedPassword = await bcrypt.hash(passwordRaw, 10);
@@ -34,11 +35,12 @@ export async function createUser(username: string, passwordRaw: string, role: "U
             data: {
                 username,
                 password: hashedPassword,
-                role
+                role,
+                timezone
             }
         });
         revalidatePath("/users");
-        return { success: true, user: { id: user.id, username: user.username, role: user.role } };
+        return { success: true, user: { id: user.id, username: user.username, role: user.role, timezone: user.timezone } };
     } catch (error: any) {
         if (error.code === 'P2002') {
             return { success: false, error: "Username already exists" };
@@ -47,11 +49,12 @@ export async function createUser(username: string, passwordRaw: string, role: "U
     }
 }
 
-export async function updateUser(id: string, username: string, passwordRaw?: string, role?: "USER" | "ADMIN") {
+export async function updateUser(id: string, username: string, passwordRaw?: string, role?: "USER" | "ADMIN", timezone?: string) {
     try {
         await requireAdmin();
         const updateData: any = { username };
         if (role) updateData.role = role;
+        if (timezone) updateData.timezone = timezone;
         if (passwordRaw) {
             updateData.password = await bcrypt.hash(passwordRaw, 10);
         }
@@ -61,7 +64,7 @@ export async function updateUser(id: string, username: string, passwordRaw?: str
             data: updateData
         });
         revalidatePath("/users");
-        return { success: true, user: { id: user.id, username: user.username, role: user.role } };
+        return { success: true, user: { id: user.id, username: user.username, role: user.role, timezone: user.timezone } };
     } catch (error: any) {
         if (error.code === 'P2002') {
             return { success: false, error: "Username already exists" };
@@ -85,5 +88,27 @@ export async function deleteUser(id: string) {
         return { success: true };
     } catch (error: any) {
         return { success: false, error: error.message || "Failed to delete user" };
+    }
+}
+
+export async function updateOwnTimezone(timezone: string) {
+    try {
+        const session = await getServerAuthSession();
+        if (!session) return { success: false, error: "Unauthorized" };
+
+        await prisma.user.update({
+            where: { id: session.user.id },
+            data: { timezone }
+        });
+
+        revalidatePath("/");
+        revalidatePath("/parts");
+        revalidatePath("/categories");
+        revalidatePath("/locations");
+        revalidatePath("/users");
+        
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: "Failed to update timezone" };
     }
 }

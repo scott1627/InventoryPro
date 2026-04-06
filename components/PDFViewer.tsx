@@ -23,7 +23,7 @@ export default function PDFViewer({ url, title }: PDFViewerProps) {
                     Open External
                 </a>
             </div>
-            <div className="h-[600px] relative">
+            <div className="flex-1 relative">
                 {!isLoaded && (
                     <div className="absolute inset-0 flex items-center justify-center bg-card">
                         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>

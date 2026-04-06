@@ -7,7 +7,7 @@ import { updateCategory, deleteCategory, addCategory } from "../app/actions/cate
 import { deletePart } from "../app/actions/parts";
 import EditPartModal from "./EditPartModal";
 import AddPartModal from "./AddPartModal";
-import PartDetails from "./PartDetails";
+import PartDetailModal from "./PartDetailModal";
 
 interface Part {
     id: string;
@@ -57,6 +57,7 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
     const [editingPart, setEditingPart] = useState<Part | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
     // Organize categories into hierarchy and calculate recursive counts
@@ -138,7 +139,7 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
                 setSelectedPart(null);
             }
         }
-    }, [initialCategories, filteredParts, selectedCategory?.id, partSearch]);
+    }, [initialCategories, filteredParts, selectedCategory?.id, partSearch, selectedPart?.id]);
 
     const handleEdit = (category: Category) => {
         setIsEditing(category.id);
@@ -272,9 +273,9 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
     };
 
     return (
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 min-h-0 pb-2">
-            {/* Column 1: Categories List */}
-            <div className="lg:col-span-3 flex flex-col gap-4 min-h-0 h-full overflow-hidden">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 pb-2">
+            {/* Column 1: Categories Tree */}
+            <div className="lg:col-span-4 flex flex-col gap-4 min-h-0 h-full overflow-hidden">
                 <div className="flex flex-col gap-2">
                     {/* Add Category Form */}
                     <div className="glass p-3 rounded-xl space-y-3 relative z-[30]">
@@ -331,10 +332,7 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
             </div>
 
             {/* Column 2: Parts in Category */}
-            <div className={cn(
-                "transition-all duration-300 flex flex-col overflow-hidden h-full",
-                selectedPart ? "lg:col-span-5" : "lg:col-span-9"
-            )}>
+            <div className="lg:col-span-8 flex flex-col overflow-hidden h-full">
                 {selectedCategory ? (
                     <div className="flex flex-col h-full overflow-hidden">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2 shrink-0">
@@ -384,7 +382,10 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
                                 {filteredParts.map((part) => (
                                     <div
                                         key={part.id}
-                                        onClick={() => setSelectedPart(part)}
+                                        onClick={() => {
+                                            setSelectedPart(part);
+                                            setIsDetailModalOpen(true);
+                                        }}
                                         className={cn(
                                             "glass p-4 rounded-xl group cursor-pointer transition-all border",
                                             selectedPart?.id === part.id ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-primary/50'
@@ -454,13 +455,6 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
                                                 </div>
                                             </div>
                                         </div>
-
-                                        {/* Mobile Inline Details */}
-                                        {selectedPart?.id === part.id && (
-                                            <div className="lg:hidden mt-4">
-                                                <PartDetails part={part} isInline={true} />
-                                            </div>
-                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -474,14 +468,12 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
                 )}
             </div>
 
-            {/* Column 3: Part Details */}
-            {selectedPart && (
-                <div className="hidden lg:block lg:col-span-4 animate-in slide-in-from-right-4 duration-300">
-                    <div className="sticky top-24">
-                        <PartDetails part={selectedPart} />
-                    </div>
-                </div>
-            )}
+            {/* Part Detail Modal */}
+            <PartDetailModal 
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+                part={selectedPart}
+            />
 
             {editingPart && (
                 <EditPartModal

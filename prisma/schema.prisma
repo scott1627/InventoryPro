@@ -114,6 +114,7 @@ model User {
   username    String        @unique
   password    String
   role        Role          @default(USER)
+  timezone    String        @default("UTC")
   activities  ActivityLog[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt

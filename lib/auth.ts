@@ -39,16 +39,21 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           username: user.username,
           role: user.role,
+          timezone: user.timezone,
         };
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
-        token.id = user.id;
-        token.username = user.username;
-        token.role = user.role;
+        token.id = user.id as string;
+        token.username = user.username as string;
+        token.role = user.role as string;
+        token.timezone = user.timezone as string;
+      }
+      if (trigger === "update" && session?.user?.timezone) {
+        token.timezone = session.user.timezone;
       }
       return token;
     },
@@ -58,6 +63,7 @@ export const authOptions: NextAuthOptions = {
           id: token.id as string,
           username: token.username as string,
           role: token.role as string,
+          timezone: token.timezone as string,
         };
       }
       return session;

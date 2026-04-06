@@ -1,7 +1,12 @@
 import { Package, MapPin, AlertTriangle, CheckCircle2, Clock, PackagePlus, PlusCircle, MinusCircle, Trash2 } from "lucide-react";
 import { prisma } from "../lib/prisma";
+import { formatDate } from "../lib/date";
+import { getServerAuthSession } from "../lib/auth";
 
 export default async function Home() {
+    const session = await getServerAuthSession();
+    const userTimezone = session?.user?.timezone || "UTC";
+
     const totalParts = await prisma.part.count();
     const totalLocations = await prisma.storageLocation.count();
     const activeJobs = await prisma.job.count({
@@ -123,8 +128,8 @@ export default async function Home() {
                                         </div>
                                     </div>
                                     <div className="text-right shrink-0">
-                                        <p className="text-xs text-muted-foreground">
-                                            {new Date(log.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                                        <p className="text-xs text-muted-foreground whitespace-nowrap">
+                                            {formatDate(log.createdAt, userTimezone)}
                                         </p>
                                     </div>
                                 </div>

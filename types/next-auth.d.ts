@@ -7,12 +7,14 @@ declare module "next-auth" {
       id: string;
       username: string;
       role: string;
+      timezone: string;
     } & DefaultSession["user"];
   }
 
   interface User extends DefaultUser {
     username: string;
     role: string;
+    timezone: string;
   }
 }
 
@@ -21,5 +23,6 @@ declare module "next-auth/jwt" {
     id: string;
     username: string;
     role: string;
+    timezone: string;
   }
 }

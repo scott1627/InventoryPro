@@ -6,7 +6,7 @@ import { updateLocation, deleteLocation, addLocation } from "../app/actions/loca
 import { deletePart } from "../app/actions/parts";
 import EditPartModal from "./EditPartModal";
 import AddPartModal from "./AddPartModal";
-import PartDetails from "./PartDetails";
+import PartDetailModal from "./PartDetailModal";
 import LocationPicker from "./LocationPicker";
 
 interface Part {
@@ -71,6 +71,7 @@ export default function LocationList({ initialLocations, allCategories, allLocat
     const [editingPart, setEditingPart] = useState<Part | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
 
     const categoryPaths = useMemo(() => {
@@ -167,7 +168,7 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                 setSelectedPart(null);
             }
         }
-    }, [initialLocations, filteredParts, selectedLocation?.id, partSearch]);
+    }, [initialLocations, filteredParts, selectedLocation?.id, partSearch, selectedPart?.id]);
 
     const handleEdit = (location: Location) => {
         setIsEditing(location.id);
@@ -344,9 +345,9 @@ export default function LocationList({ initialLocations, allCategories, allLocat
     };
 
     return (
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 min-h-0 pb-2">
-            {/* Column 1: Locations List (Lg: 3/12) */}
-            <div className="lg:col-span-3 flex flex-col gap-4 min-h-0 h-full overflow-hidden">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 pb-2">
+            {/* Column 1: Locations Tree */}
+            <div className="lg:col-span-4 flex flex-col gap-4 min-h-0 h-full overflow-hidden">
                 <div className="flex flex-col gap-2">
                     {/* Add Location Form */}
                     <div className="glass p-3 rounded-xl space-y-3 relative z-[30]">
@@ -421,10 +422,7 @@ export default function LocationList({ initialLocations, allCategories, allLocat
             </div>
 
             {/* Column 2: Parts in Location */}
-            <div className={cn(
-                "transition-all duration-300 flex flex-col overflow-hidden h-full",
-                selectedPart ? "lg:col-span-5" : "lg:col-span-9"
-            )}>
+            <div className="lg:col-span-8 flex flex-col overflow-hidden h-full">
                 {selectedLocation ? (
                     <div className="flex flex-col h-full overflow-hidden">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2 shrink-0">
@@ -480,7 +478,10 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                                 {filteredParts.map((part) => (
                                     <div
                                         key={part.id}
-                                        onClick={() => setSelectedPart(part)}
+                                        onClick={() => {
+                                            setSelectedPart(part);
+                                            setIsDetailModalOpen(true);
+                                        }}
                                         className={cn(
                                             "glass p-4 rounded-xl group cursor-pointer transition-all border",
                                             selectedPart?.id === part.id ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-primary/50'
@@ -542,13 +543,6 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                                                 </div>
                                             </div>
                                         </div>
-
-                                        {/* Mobile Inline Details */}
-                                        {selectedPart?.id === part.id && (
-                                            <div className="lg:hidden mt-4">
-                                                <PartDetails part={part} isInline={true} categoryPath={categoryPaths[part.categoryId]} />
-                                            </div>
-                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -562,14 +556,13 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                 )}
             </div>
 
-            {/* Column 3: Part Details (Lg: 4/12) */}
-            {selectedPart && (
-                <div className="hidden lg:block lg:col-span-4 animate-in slide-in-from-right-4 duration-300">
-                    <div className="sticky top-24">
-                        <PartDetails part={selectedPart} categoryPath={categoryPaths[selectedPart.categoryId]} />
-                    </div>
-                </div>
-            )}
+            {/* Part Detail Modal */}
+            <PartDetailModal 
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+                part={selectedPart}
+                categoryPath={selectedPart ? categoryPaths[selectedPart.categoryId] : undefined}
+            />
 
             {editingPart && (
                 <EditPartModal

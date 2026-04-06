@@ -26,7 +26,7 @@ export default async function UsersPage() {
         </div>
       </div>
       
-      <UserList initialUsers={users} currentUserId={session.user.id} />
+      <UserList initialUsers={users} currentUserId={session.user.id} userTimezone={session.user.timezone} />
     </div>
   );
 }
