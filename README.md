@@ -1,4 +1,4 @@
-# InventoryPro
+# InventoryPro [![Version](https://img.shields.io/badge/version-1.4.1-blue.svg)](https://github.com/scott1627/InventoryPro)
 
 Modern Parts Management for Makers and Engineers.
 
@@ -19,20 +19,13 @@ chmod +x update.sh
 ```
 This will pull the latest code and re-build the system while **keeping all your data safe** in the database.
 
-
-This script will:
-1. Verify Your environment.
-2. Build and start the containers.
-3. Automatically initialize the database.
-4. Set up the default admin account.
-
-### 🔑 Default Credentials
-- **Username**: `admin`
-- **Password**: `password123`
-
 ---
 
-## 🛠 Features
+## 🛠 Features (v1.4.1)
+- **Modal-Based Detail Views**: Fast, centered popups for viewing part details without layout shifts.
+- **Embedded Datasheet Previews**: Automatically open and view PDF datasheets directly inside the application.
+- **Hierarchical Navigation**: Enhanced category and location trees with deep nesting support.
+- **Per-User Timezones**: Support for local timestamps across the entire application.
 - **Comprehensive Inventory Control**: Track parts, categories, and storage locations.
 - **BOM & Production Jobs**: Build assemblies and track stock deduction automatically.
 - **Activity Tracking**: Full audit trail of who changed what and when.
