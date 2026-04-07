@@ -1,4 +1,4 @@
-# InventoryPro [![Version](https://img.shields.io/badge/version-1.4.1-blue.svg)](https://github.com/scott1627/InventoryPro)
+# InventoryPro [![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](https://github.com/scott1627/InventoryPro)
 
 Modern Parts Management for Makers and Engineers.
 

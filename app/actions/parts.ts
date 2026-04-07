@@ -22,26 +22,20 @@ export async function addPart(formData: FormData) {
 
         // Handle datasheet upload
         const datasheet = formData.get("datasheet") as File;
-        let datasheetUrl = null;
+        let datasheetContent: Buffer | undefined = undefined;
+        let datasheetType: string | undefined = undefined;
         if (datasheet && datasheet.size > 0) {
-            const fileName = `${Date.now()}-${datasheet.name}`;
-            datasheetUrl = `/uploads/datasheets/${fileName}`;
-            const buffer = Buffer.from(await datasheet.arrayBuffer());
-            const filePath = path.join(process.cwd(), "public", datasheetUrl);
-            await fs.mkdir(path.dirname(filePath), { recursive: true });
-            await fs.writeFile(filePath, buffer);
+            datasheetContent = Buffer.from(await datasheet.arrayBuffer());
+            datasheetType = datasheet.type;
         }
 
         // Handle image upload
         const image = formData.get("image") as File;
-        let imageUrl = null;
+        let imageContent: Buffer | undefined = undefined;
+        let imageType: string | undefined = undefined;
         if (image && image.size > 0) {
-            const fileName = `${Date.now()}-${image.name}`;
-            imageUrl = `/uploads/images/${fileName}`;
-            const buffer = Buffer.from(await image.arrayBuffer());
-            const filePath = path.join(process.cwd(), "public", imageUrl);
-            await fs.mkdir(path.dirname(filePath), { recursive: true });
-            await fs.writeFile(filePath, buffer);
+            imageContent = Buffer.from(await image.arrayBuffer());
+            imageType = image.type;
         }
 
         // Helper to ensure Unassigned fallback if IDs are missing
@@ -76,8 +70,10 @@ export async function addPart(formData: FormData) {
             data: {
                 name,
                 description,
-                datasheetUrl,
-                imageUrl,
+                datasheetContent,
+                datasheetType,
+                imageContent,
+                imageType,
                 category: { connect: { id: finalCategoryId } },
                 storageLocation: { connect: { id: finalLocationId } },
                 minStock,
@@ -88,6 +84,15 @@ export async function addPart(formData: FormData) {
                         quantity: stock
                     }
                 }
+            }
+        });
+
+        // 4. Update with virtual URLs for the UI
+        await prisma.part.update({
+            where: { id: part.id },
+            data: {
+                imageUrl: imageContent ? `/api/parts/${part.id}/image` : null,
+                datasheetUrl: datasheetContent ? `/api/parts/${part.id}/datasheet` : null,
             }
         });
 
@@ -125,25 +130,19 @@ export async function updatePart(id: string, formData: FormData) {
         const reorderLink = formData.get("reorderLink") as string;
 
         const datasheet = formData.get("datasheet") as File;
-        let datasheetUrl = undefined;
+        let datasheetContent = undefined;
+        let datasheetType = undefined;
         if (datasheet && datasheet.size > 0) {
-            const fileName = `${Date.now()}-${datasheet.name}`;
-            datasheetUrl = `/uploads/datasheets/${fileName}`;
-            const buffer = Buffer.from(await datasheet.arrayBuffer());
-            const filePath = path.join(process.cwd(), "public", datasheetUrl);
-            await fs.mkdir(path.dirname(filePath), { recursive: true });
-            await fs.writeFile(filePath, buffer);
+            datasheetContent = Buffer.from(await datasheet.arrayBuffer());
+            datasheetType = datasheet.type;
         }
 
         const image = formData.get("image") as File;
-        let imageUrl = undefined;
+        let imageContent = undefined;
+        let imageType = undefined;
         if (image && image.size > 0) {
-            const fileName = `${Date.now()}-${image.name}`;
-            imageUrl = `/uploads/images/${fileName}`;
-            const buffer = Buffer.from(await image.arrayBuffer());
-            const filePath = path.join(process.cwd(), "public", imageUrl);
-            await fs.mkdir(path.dirname(filePath), { recursive: true });
-            await fs.writeFile(filePath, buffer);
+            imageContent = Buffer.from(await image.arrayBuffer());
+            imageType = image.type;
         }
 
         let finalCategoryId = categoryId;
@@ -183,8 +182,10 @@ export async function updatePart(id: string, formData: FormData) {
             data: {
                 name,
                 description,
-                ...(datasheetUrl && { datasheetUrl }),
-                ...(imageUrl && { imageUrl }),
+                ...(datasheetContent !== undefined && { datasheetContent, datasheetType }),
+                ...(imageContent !== undefined && { imageContent, imageType }),
+                ...(datasheetContent !== undefined && { datasheetUrl: datasheetContent ? `/api/parts/${id}/datasheet` : null }),
+                ...(imageContent !== undefined && { imageUrl: imageContent ? `/api/parts/${id}/image` : null }),
                 category: { connect: { id: finalCategoryId } },
                 storageLocation: { connect: { id: finalLocationId } },
                 minStock,

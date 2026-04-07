@@ -13,7 +13,9 @@ model Part {
   name            String
   description     String?
   footprint       String?
-  datasheetUrl    String?  // Local path to PDF
+  datasheetUrl    String?  // Local path to PDF (Legacy)
+  datasheetContent Bytes?   // PDF Blob
+  datasheetType    String?  // MIME Type
   category        Category @relation(fields: [categoryId], references: [id])
   categoryId      String
   storageLocation StorageLocation @relation(fields: [storageLocationId], references: [id])
@@ -21,7 +23,9 @@ model Part {
   stockLevels     StockLevel[]
   bomItems        BOMItem[]
   reorderLink     String?
-  imageUrl        String?  // Local path to image
+  imageUrl        String?  // Local path to image (Legacy)
+  imageContent    Bytes?   // Image Blob
+  imageType       String?  // MIME Type
   minStock            Int      @default(0)
   lowStockAlertEnabled Boolean @default(false)
   createdAt           DateTime @default(now())
