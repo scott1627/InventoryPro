@@ -87,12 +87,13 @@ export async function addPart(formData: FormData) {
             }
         });
 
-        // 4. Update with virtual URLs for the UI
+        // 4. Update with virtual URLs for the UI (with cache busting)
+        const version = Date.now();
         await prisma.part.update({
             where: { id: part.id },
             data: {
-                imageUrl: imageContent ? `/api/parts/${part.id}/image` : null,
-                datasheetUrl: datasheetContent ? `/api/parts/${part.id}/datasheet` : null,
+                imageUrl: imageContent ? `/api/parts/${part.id}/image?v=${version}` : null,
+                datasheetUrl: datasheetContent ? `/api/parts/${part.id}/datasheet?v=${version}` : null,
             }
         });
 
@@ -177,6 +178,7 @@ export async function updatePart(id: string, formData: FormData) {
         });
         const oldStock = oldPart?.stockLevels[0]?.quantity || 0;
 
+        const version = Date.now();
         const part = await prisma.part.update({
             where: { id },
             data: {
@@ -184,8 +186,8 @@ export async function updatePart(id: string, formData: FormData) {
                 description,
                 ...(datasheetContent !== undefined && { datasheetContent, datasheetType }),
                 ...(imageContent !== undefined && { imageContent, imageType }),
-                ...(datasheetContent !== undefined && { datasheetUrl: datasheetContent ? `/api/parts/${id}/datasheet` : null }),
-                ...(imageContent !== undefined && { imageUrl: imageContent ? `/api/parts/${id}/image` : null }),
+                ...(datasheetContent !== undefined && { datasheetUrl: datasheetContent ? `/api/parts/${id}/datasheet?v=${version}` : null }),
+                ...(imageContent !== undefined && { imageUrl: imageContent ? `/api/parts/${id}/image?v=${version}` : null }),
                 category: { connect: { id: finalCategoryId } },
                 storageLocation: { connect: { id: finalLocationId } },
                 minStock,
