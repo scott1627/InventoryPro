@@ -25,20 +25,24 @@ export default function LocationPicker({ locations, value, onSelect, placeholder
 
     // Build hierarchy
     const hierarchicalLocations = useMemo(() => {
-        // Function to check if a location is or is a descendant of excludeId
-        const isForbidden = (locId: string): boolean => {
-            if (!excludeId) return false;
-            if (locId === excludeId) return true;
-            
-            const loc = locations.find(l => l.id === locId);
-            if (!loc || !loc.parentId) return false;
-            return isForbidden(loc.parentId);
-        };
+        const forbiddenIds = new Set<string>();
+
+        if (excludeId) {
+            forbiddenIds.add(excludeId);
+            const markForbidden = (id: string) => {
+                locations.forEach(l => {
+                    if (l.parentId === id && !forbiddenIds.has(l.id)) {
+                        forbiddenIds.add(l.id);
+                        markForbidden(l.id);
+                    }
+                });
+            };
+            markForbidden(excludeId);
+        }
 
         const build = (parentId: string | null = null): any[] => {
             return locations
-                .filter(l => l.parentId === parentId)
-                .filter(l => !excludeId || !isForbidden(l.id))
+                .filter(l => l.parentId === parentId && !forbiddenIds.has(l.id))
                 .map(l => ({
                     ...l,
                     children: build(l.id)
@@ -50,13 +54,19 @@ export default function LocationPicker({ locations, value, onSelect, placeholder
     // Get current selection path for the display
     const currentPath = useMemo(() => {
         if (!value) return null;
-        const getPath = (id: string): string[] => {
-            const loc = locations.find(l => l.id === id);
-            if (!loc) return [];
-            return [...getPath(loc.parentId || null), loc.name].filter(Boolean);
-        };
-        const pathArr = getPath(value);
-        return pathArr.length > 0 ? pathArr.join(" > ") : null;
+        const locMap = new Map(locations.map(l => [l.id, l]));
+        const path: string[] = [];
+        
+        let currId: string | null = value;
+        const visited = new Set();
+        while (currId && locMap.has(currId) && !visited.has(currId)) {
+            visited.add(currId);
+            const loc = locMap.get(currId)!;
+            path.unshift(loc.name);
+            currId = loc.parentId || null;
+        }
+        
+        return path.length > 0 ? path.join(" > ") : null;
     }, [value, locations]);
 
     const toggleExpand = (id: string, e: React.MouseEvent) => {

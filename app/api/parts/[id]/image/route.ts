@@ -15,7 +15,7 @@ export async function GET(
             return new Response("Not Found", { status: 404 });
         }
 
-        return new Response(part.imageContent, {
+        return new Response(part.imageContent as any, {
             headers: {
                 "Content-Type": part.imageType || "image/jpeg",
                 "Cache-Control": "public, max-age=31536000, immutable"

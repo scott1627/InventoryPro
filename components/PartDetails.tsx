@@ -213,6 +213,31 @@ export default function PartDetails({ part, isInline, categoryPath }: PartDetail
                     </div>
                 )}
             </div>
+
+            {/* Enlarged Image Portal */}
+            {isEnlarged && part.imageUrl && createPortal(
+                <div 
+                    className="fixed inset-0 z-[20000] flex items-center justify-center p-4 md:p-12 animate-in fade-in duration-300"
+                    onClick={() => setIsEnlarged(false)}
+                >
+                    <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
+                    <button 
+                        className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-10"
+                        onClick={() => setIsEnlarged(false)}
+                    >
+                        <X size={24} />
+                    </button>
+                    <div className="relative w-full h-full flex items-center justify-center animate-in zoom-in-95 duration-300">
+                        <img 
+                            src={part.imageUrl} 
+                            alt={part.name} 
+                            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 }

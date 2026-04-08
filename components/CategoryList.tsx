@@ -63,36 +63,48 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
     // Organize categories into hierarchy and calculate recursive counts
     const hierarchicalCategories = useMemo(() => {
         const query = categorySearch.toLowerCase();
-        const rootCategories = initialCategories.filter(c => !c.parentId);
+        const catMap = new Map(initialCategories.map(c => [c.id, { ...c, children: [] as Category[] }]));
+        const rootCategories: any[] = [];
 
-        const buildHierarchy = (cats: Category[]): any[] => {
+        // Build hierarchy in O(N)
+        catMap.forEach(cat => {
+            if (cat.parentId && catMap.has(cat.parentId)) {
+                catMap.get(cat.parentId)!.children!.push(cat as Category);
+            } else {
+                rootCategories.push(cat);
+            }
+        });
+
+        // Calculate recursive parts in O(N) using post-order traversal (memoized)
+        const partsMemo = new Map<string, Part[]>();
+        const getRecursiveParts = (id: string): Part[] => {
+            if (partsMemo.has(id)) return partsMemo.get(id)!;
+            const cat = catMap.get(id);
+            if (!cat) return [];
+            
+            const directParts = cat.parts || [];
+            const childParts = (cat.children || []).flatMap(child => getRecursiveParts(child.id));
+            const allParts = [...directParts, ...childParts];
+            partsMemo.set(id, allParts);
+            return allParts;
+        };
+
+        const buildFinalTree = (cats: any[]): any[] => {
             return cats.map(cat => {
-                const children = initialCategories.filter(c => c.parentId === cat.id);
-                const subHierarchy = buildHierarchy(children);
-                
-                // Recursive parts: self + all children's parts
-                const getRecursiveParts = (c: Category, allCats: Category[]): Part[] => {
-                    const directParts = c.parts;
-                    const childCats = allCats.filter(child => child.parentId === c.id);
-                    const childParts = childCats.flatMap(child => getRecursiveParts(child, allCats));
-                    return [...directParts, ...childParts];
-                };
-
-                const recursiveParts = getRecursiveParts(cat, initialCategories);
-
+                const recursiveParts = getRecursiveParts(cat.id);
                 return {
                     ...cat,
-                    children: subHierarchy,
+                    children: buildFinalTree(cat.children || []),
                     recursivePartCount: recursiveParts.length,
                     allRecursiveParts: recursiveParts
                 };
             }).filter(cat => 
                 cat.name.toLowerCase().includes(query) || 
-                (cat.children && cat.children.some((child: any) => child.name.toLowerCase().includes(query)))
+                (cat.children && cat.children.length > 0)
             );
         };
 
-        return buildHierarchy(rootCategories);
+        return buildFinalTree(rootCategories);
     }, [initialCategories, categorySearch]);
 
     // Filter parts within selected category (including children)
@@ -216,7 +228,7 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
                     <div
                         onClick={() => setSelectedCategory(category)}
                             className={cn(
-                            "glass rounded-xl cursor-pointer transition-all border group relative min-w-fit",
+                            "glass-light rounded-xl cursor-pointer transition-all border group relative min-w-fit",
                             isSel ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-primary/30',
                             depth > 2 ? "p-2" : "p-3"
                         )}
@@ -387,7 +399,7 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
                                             setIsDetailModalOpen(true);
                                         }}
                                         className={cn(
-                                            "glass p-4 rounded-xl group cursor-pointer transition-all border",
+                                            "glass-light p-4 rounded-xl group cursor-pointer transition-all border",
                                             selectedPart?.id === part.id ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-primary/50'
                                         )}
                                     >
@@ -404,7 +416,9 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
                                                     <p className="font-bold truncate flex items-center gap-2">
                                                         {part.name}
                                                         {part.datasheetUrl && (
-                                                            <FileText size={12} className="text-blue-500 shrink-0" title="Datasheet Available" />
+                                                            <span title="Datasheet Available">
+                                                                <FileText size={12} className="text-blue-500 shrink-0" />
+                                                            </span>
                                                         )}
                                                     </p>
                                                     {part.description && (

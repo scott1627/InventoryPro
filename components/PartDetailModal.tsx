@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import PartDetails from "./PartDetails";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
@@ -58,14 +58,15 @@ export default function PartDetailModal({ isOpen, onClose, part, categoryPath }:
             
             {/* Modal Content */}
             <div className={cn(
-                "relative bg-card border border-border/50 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]",
-                part.datasheetUrl ? "w-full max-w-6xl" : "w-full max-w-2xl"
+                "relative bg-card border border-border/50 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col w-full",
+                "max-h-[calc(100dvh-2rem)] sm:max-h-[90vh]",
+                part.datasheetUrl ? "max-w-7xl" : "max-w-2xl"
             )}>
                 {/* Header */}
-                <div className="p-4 border-b border-border/50 flex items-center justify-between bg-secondary/20">
+                <div className="p-4 border-b border-border/50 flex items-center justify-between bg-secondary/20 shrink-0">
                     <div className="flex items-center gap-2">
                         <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                            <X size={18} className="rotate-45" /> {/* Just a decorative icon */}
+                            <Plus size={18} />
                         </div>
                         <h3 className="font-bold">Part Details</h3>
                     </div>
@@ -78,10 +79,7 @@ export default function PartDetailModal({ isOpen, onClose, part, categoryPath }:
                 </div>
 
                 {/* Details Container - Scrollable */}
-                <div className={cn(
-                    "flex-1 min-h-0",
-                    part.datasheetUrl ? "" : "overflow-y-auto custom-scrollbar"
-                )}>
+                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
                     <PartDetails part={part} categoryPath={categoryPath} isInline={false} />
                 </div>
             </div>

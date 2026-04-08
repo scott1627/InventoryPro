@@ -3,23 +3,52 @@ version: '3.8'
 services:
   app:
     build: .
+    restart: always
     ports:
       - "3000:3000"
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/inventory_db
+      - NODE_ENV=production
+    env_file:
+      - .env
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
     volumes:
-      - .:/app
-      - /app/node_modules
       - ./public/uploads:/app/public/uploads
     depends_on:
       - db
 
   db:
     image: postgres:16-alpine
+    restart: always
+    command: 
+      - "postgres"
+      - "-c"
+      - "shared_buffers=512MB"
+      - "-c"
+      - "effective_cache_size=1536MB"
+      - "-c"
+      - "work_mem=32MB"
+      - "-c"
+      - "maintenance_work_mem=128MB"
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=inventory_db
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
     volumes:
       - db_data:/var/lib/postgresql/data
 

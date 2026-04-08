@@ -6,10 +6,11 @@ import MobileNav from "../components/MobileNav";
 import { getCategories } from "./actions/categories";
 import { getLocations } from "./actions/locations";
 import { cn } from "../lib/utils";
-import Sidebar from "@/components/Sidebar";
 import { Providers } from "./providers";
 import UserNav from "../components/UserNav";
 import { getServerAuthSession } from "../lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
     title: "InventoryPro | Modern Parts Management",

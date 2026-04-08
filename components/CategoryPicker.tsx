@@ -24,20 +24,25 @@ export default function CategoryPicker({ categories, value, onSelect, placeholde
 
     // Build hierarchy
     const hierarchicalCategories = useMemo(() => {
-        // Function to check if a category is or is a descendant of excludeId
-        const isForbidden = (catId: string): boolean => {
-            if (!excludeId) return false;
-            if (catId === excludeId) return true;
-            
-            const cat = categories.find(c => c.id === catId);
-            if (!cat || !cat.parentId) return false;
-            return isForbidden(cat.parentId);
-        };
+        const catMap = new Map(categories.map(c => [c.id, { ...c, children: [] as any[] }]));
+        const forbiddenIds = new Set<string>();
+
+        if (excludeId) {
+            forbiddenIds.add(excludeId);
+            const markForbidden = (id: string) => {
+                categories.forEach(c => {
+                    if (c.parentId === id && !forbiddenIds.has(c.id)) {
+                        forbiddenIds.add(c.id);
+                        markForbidden(c.id);
+                    }
+                });
+            };
+            markForbidden(excludeId);
+        }
 
         const build = (parentId: string | null = null): any[] => {
             return categories
-                .filter(c => c.parentId === parentId)
-                .filter(c => !excludeId || !isForbidden(c.id))
+                .filter(c => c.parentId === parentId && !forbiddenIds.has(c.id))
                 .map(c => ({
                     ...c,
                     children: build(c.id)
@@ -49,13 +54,19 @@ export default function CategoryPicker({ categories, value, onSelect, placeholde
     // Get current selection path for the display
     const currentPath = useMemo(() => {
         if (!value) return null;
-        const getPath = (id: string): string[] => {
-            const cat = categories.find(c => c.id === id);
-            if (!cat) return [];
-            return [...getPath(cat.parentId || ""), cat.name].filter(Boolean);
-        };
-        const pathArr = getPath(value);
-        return pathArr.length > 0 ? pathArr.join(" > ") : null;
+        const catMap = new Map(categories.map(c => [c.id, c]));
+        const path: string[] = [];
+        
+        let currId: string | null = value;
+        const visited = new Set();
+        while (currId && catMap.has(currId) && !visited.has(currId)) {
+            visited.add(currId);
+            const cat = catMap.get(currId)!;
+            path.unshift(cat.name);
+            currId = cat.parentId || null;
+        }
+        
+        return path.length > 0 ? path.join(" > ") : null;
     }, [value, categories]);
 
     const toggleExpand = (id: string, e: React.MouseEvent) => {

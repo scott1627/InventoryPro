@@ -119,61 +119,67 @@ export default function EditPartModal({ isOpen, onClose, part, categories, locat
                         await handleSubmit(formData);
                     }}
                 >
-                    <div className="p-6 border-b border-border flex items-center justify-between bg-primary/5 shrink-0">
-                        <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                                <Save className="text-primary" size={20} />
+                    <div className="p-6 border-b border-border/50 flex items-center justify-between bg-secondary/20 shrink-0">
+                        <div className="flex items-center gap-4">
+                            <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary shadow-lg shadow-primary/10">
+                                <Save size={24} />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold">Edit Part</h2>
-                                <p className="text-xs text-muted-foreground uppercase tracking-wider">{part.name}</p>
+                                <h2 className="text-xl font-bold tracking-tight">Edit Part</h2>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold opacity-60">{part.name}</p>
                             </div>
                         </div>
                         <button
                             type="button"
                             onClick={onClose}
-                            className="p-2 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                            className="p-2 hover:bg-secondary rounded-full transition-all text-muted-foreground hover:text-foreground"
                         >
                             <X size={20} />
                         </button>
                     </div>
 
-                    <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar min-h-0 flex-1">
+                    <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar min-h-0 flex-1 bg-background/50">
                         {error && (
-                            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm font-medium flex items-center gap-2">
+                            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-sm font-medium flex items-center gap-3 animate-in slide-in-from-top-2">
                                 <AlertTriangle size={16} />
                                 {error}
                             </div>
                         )}
 
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium flex items-center gap-2">
-                                    <Package size={14} className="text-primary" /> Part Name
+                        <div className="space-y-5">
+                            {/* Row 1: Part Name */}
+                            <div className="space-y-2.5">
+                                <label className="text-sm font-semibold flex items-center gap-2.5 text-foreground/90">
+                                    <Package size={16} className="text-primary/70" /> Part Name
                                 </label>
                                 <input
                                     name="name"
                                     type="text"
                                     required
                                     defaultValue={part.name}
-                                    className="w-full px-4 py-2.5 bg-secondary/50 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                                    className="w-full px-4 py-3 bg-secondary/40 rounded-xl border border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-muted-foreground/50 shadow-inner"
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium flex items-center gap-2">
-                                        <Tag size={14} className="text-primary" /> Category
-                                    </label>
-                                    <CategoryPicker 
-                                        categories={categories}
-                                        value={selectedCategoryId}
-                                        onSelect={setSelectedCategoryId}
-                                    />
-                                </div>
-                                <div className="col-span-2 space-y-2">
-                                    <label className="text-sm font-medium flex items-center gap-2">
-                                        <MapPin size={14} className="text-primary" /> Storage Location
+                            {/* Row 2: Description */}
+                            <div className="space-y-2.5">
+                                <label className="text-sm font-semibold flex items-center gap-2.5 text-foreground/90">
+                                    <FileText size={16} className="text-primary/70" /> Description
+                                </label>
+                                <textarea
+                                    name="description"
+                                    rows={3}
+                                    defaultValue={part.description || ""}
+                                    placeholder="Enter part specifications or notes..."
+                                    className="w-full px-4 py-3 bg-secondary/40 rounded-xl border border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none shadow-inner"
+                                ></textarea>
+                            </div>
+
+                            {/* Row 3: Location & Category */}
+                            <div className="grid grid-cols-2 gap-5">
+                                <div className="space-y-2.5">
+                                    <label className="text-sm font-semibold flex items-center gap-2.5 text-foreground/90">
+                                        <MapPin size={16} className="text-primary/70" /> Select Location...
                                     </label>
                                     <LocationPicker 
                                         locations={locations}
@@ -181,27 +187,51 @@ export default function EditPartModal({ isOpen, onClose, part, categories, locat
                                         onSelect={setSelectedLocationId}
                                     />
                                 </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium flex items-center gap-2">
-                                        <Hash size={14} className="text-primary" /> Stock Level
+                                <div className="space-y-2.5">
+                                    <label className="text-sm font-semibold flex items-center gap-2.5 text-foreground/90">
+                                        <Tag size={16} className="text-primary/70" /> Category
                                     </label>
-                                    <input
-                                        name="stock"
-                                        type="number"
-                                        defaultValue={part.stockLevels[0]?.quantity || 0}
-                                        className="w-full px-4 py-2.5 bg-secondary/50 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                                    <CategoryPicker 
+                                        categories={categories}
+                                        value={selectedCategoryId}
+                                        onSelect={setSelectedCategoryId}
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium flex items-center gap-2">
-                                        <Upload size={14} className="text-primary" /> {part.datasheetUrl ? "Update Datasheet" : "Datasheet (PDF)"}
+                            </div>
+
+                            {/* Row 4: Photos & Datasheets */}
+                            <div className="grid grid-cols-2 gap-5">
+                                <div className="space-y-2.5">
+                                    <label className="text-sm font-semibold flex items-center gap-2.5 text-foreground/90">
+                                        <Upload size={16} className="text-primary/70" /> {part.imageUrl ? "Update Photo" : "Part Photo (IMG)"}
+                                    </label>
+                                    <div className="space-y-3">
+                                        {part.imageUrl && (
+                                            <div className="flex items-center gap-3 p-3 bg-primary/5 rounded-xl border border-primary/20 text-xs text-foreground/80 shadow-sm">
+                                                <div className="h-12 w-12 rounded-lg border border-border overflow-hidden bg-background flex shrink-0">
+                                                    <img src={part.imageUrl} alt="Part" className="w-full h-full object-cover" />
+                                                </div>
+                                                <div className="flex-1 truncate">
+                                                    <p className="font-semibold truncate">{part.imageUrl.split('/').pop()}</p>
+                                                    <span className="text-muted-foreground italic">Current photo attached</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <input
+                                            name="image"
+                                            type="file"
+                                            accept="image/*"
+                                            className="w-full px-4 py-2 text-xs bg-secondary/40 rounded-xl border border-border/50 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-primary/20 file:text-primary hover:file:bg-primary/30 outline-none transition-all cursor-pointer shadow-inner"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2.5">
+                                    <label className="text-sm font-semibold flex items-center gap-2.5 text-foreground/90">
+                                        <Upload size={16} className="text-primary/70" /> {part.datasheetUrl ? "Update Datasheet" : "Datasheet (PDF)"}
                                     </label>
                                     <div className="space-y-3">
                                         {part.datasheetUrl && (
-                                            <div className="flex items-center gap-3 p-3 bg-primary/5 rounded-xl border border-primary/20 text-xs text-foreground/80">
+                                            <div className="flex items-center gap-3 p-3 bg-primary/5 rounded-xl border border-primary/20 text-xs text-foreground/80 shadow-sm">
                                                 <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                                                     <FileText size={16} />
                                                 </div>
@@ -222,71 +252,49 @@ export default function EditPartModal({ isOpen, onClose, part, categories, locat
                                             name="datasheet"
                                             type="file"
                                             accept="application/pdf"
-                                            className="w-full px-4 py-1.5 text-xs bg-secondary/50 rounded-xl border border-border file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30 outline-none transition-all cursor-pointer"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium flex items-center gap-2">
-                                        <Upload size={14} className="text-primary" /> {part.imageUrl ? "Update Photo" : "Part Photo (IMG)"}
-                                    </label>
-                                    <div className="space-y-3">
-                                        {part.imageUrl && (
-                                            <div className="flex items-center gap-3 p-3 bg-primary/5 rounded-xl border border-primary/20 text-xs text-foreground/80">
-                                                <div className="h-12 w-12 rounded-lg border border-border overflow-hidden bg-background flex shrink-0">
-                                                    <img src={part.imageUrl} alt="Part" className="w-full h-full object-cover" />
-                                                </div>
-                                                <div className="flex-1 truncate">
-                                                    <p className="font-semibold truncate">{part.imageUrl.split('/').pop()}</p>
-                                                    <span className="text-muted-foreground italic">Current photo attached</span>
-                                                </div>
-                                            </div>
-                                        )}
-                                        <input
-                                            name="image"
-                                            type="file"
-                                            accept="image/*"
-                                            className="w-full px-4 py-1.5 text-xs bg-secondary/50 rounded-xl border border-border file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30 outline-none transition-all cursor-pointer"
+                                            className="w-full px-4 py-2 text-xs bg-secondary/40 rounded-xl border border-border/50 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-primary/20 file:text-primary hover:file:bg-primary/30 outline-none transition-all cursor-pointer shadow-inner"
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium flex items-center gap-2">
-                                    <FileText size={14} className="text-primary" /> Description
-                                </label>
-                                <textarea
-                                    name="description"
-                                    rows={2}
-                                    defaultValue={part.description || ""}
-                                    className="w-full px-4 py-2.5 bg-secondary/50 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
-                                ></textarea>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium flex items-center gap-2">
-                                    <Tag size={14} className="text-primary" /> Reorder Link
+                            {/* Row 5: Reorder Link */}
+                            <div className="space-y-2.5">
+                                <label className="text-sm font-semibold flex items-center gap-2.5 text-foreground/90">
+                                    <Tag size={16} className="text-primary/70" /> Reorder Link
                                 </label>
                                 <input
                                     name="reorderLink"
                                     type="url"
                                     defaultValue={part.reorderLink || ""}
                                     placeholder="https://..."
-                                    className="w-full px-4 py-2.5 bg-secondary/50 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                                    className="w-full px-4 py-3 bg-secondary/40 rounded-xl border border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-inner"
                                 />
                             </div>
 
-                            <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 space-y-4">
+                            {/* Row 6: Stock Level */}
+                            <div className="space-y-2.5">
+                                <label className="text-sm font-semibold flex items-center gap-2.5 text-foreground/90">
+                                    <Hash size={16} className="text-primary/70" /> Stock Level
+                                </label>
+                                <input
+                                    name="stock"
+                                    type="number"
+                                    defaultValue={part.stockLevels[0]?.quantity || 0}
+                                    className="w-full px-4 py-3 bg-secondary/40 rounded-xl border border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-inner"
+                                />
+                            </div>
+
+                            {/* Row 7: Alerts Card */}
+                            <div className="p-5 bg-primary/5 rounded-2xl border border-primary/10 space-y-5 shadow-inner">
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                                            <Bell size={16} />
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
+                                            <Bell size={18} />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-bold">Low Stock Alerts</p>
-                                            <p className="text-[10px] text-muted-foreground uppercase">Notifications</p>
+                                            <p className="text-sm font-bold tracking-tight">Low Stock Alerts</p>
+                                            <p className="text-[10px] text-muted-foreground uppercase font-bold opacity-60">Notifications</p>
                                         </div>
                                     </div>
                                     <label className="relative inline-flex items-center cursor-pointer">
@@ -297,22 +305,22 @@ export default function EditPartModal({ isOpen, onClose, part, categories, locat
                                             checked={alertsEnabled}
                                             onChange={(e) => setAlertsEnabled(e.target.checked)}
                                         />
-                                        <div className="w-11 h-6 bg-secondary peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                        <div className="w-12 h-6.5 bg-secondary/80 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary shadow-inner"></div>
                                     </label>
                                 </div>
 
                                 {alertsEnabled && (
-                                    <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
-                                        <label className="text-sm font-medium flex items-center gap-2">
-                                            <Hash size={14} className="text-primary" /> Low Stock Threshold
+                                    <div className="space-y-3 animate-in slide-in-from-top-3 duration-300">
+                                        <label className="text-sm font-semibold flex items-center gap-2.5 text-foreground/90">
+                                            <Hash size={16} className="text-primary/70" /> Low Stock Threshold
                                         </label>
                                         <input
                                             name="minStock"
                                             type="number"
                                             defaultValue={part.minStock}
-                                            className="w-full px-4 py-2 bg-secondary/50 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                                            className="w-full px-4 py-2.5 bg-background/50 rounded-xl border border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-inner"
                                         />
-                                        <p className="text-[10px] text-muted-foreground italic">
+                                        <p className="text-[10px] text-muted-foreground/70 italic px-1">
                                             You will be notified when the stock level drops to or below this quantity.
                                         </p>
                                     </div>
@@ -321,29 +329,29 @@ export default function EditPartModal({ isOpen, onClose, part, categories, locat
                         </div>
                     </div>
 
-                    <div className="p-6 bg-secondary/10 border-t border-border flex items-center justify-between shrink-0">
+                    <div className="p-6 bg-secondary/10 border-t border-border/50 flex items-center justify-between shrink-0">
                         <button
                             type="button"
                             onClick={handleDelete}
                             disabled={isDeleting || isPending}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm text-destructive hover:bg-destructive/10 transition-all disabled:opacity-50 active:scale-95"
                         >
                             {isDeleting ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
                             Delete Part
                         </button>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-6">
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-secondary transition-colors"
+                                className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors px-2"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={isPending || isDeleting}
-                                className="px-8 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 disabled:opacity-50 flex items-center gap-2"
+                                className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-all shadow-xl shadow-primary/20 disabled:opacity-50 flex items-center gap-2.5 active:scale-95"
                             >
                                 {(isPending) && <Loader2 className="animate-spin" size={16} />}
                                 {isPending ? "Saving..." : "Save Changes"}

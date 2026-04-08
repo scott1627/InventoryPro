@@ -15,7 +15,7 @@ export async function GET(
             return new Response("Not Found", { status: 404 });
         }
 
-        return new Response(part.datasheetContent, {
+        return new Response(part.datasheetContent as any, {
             headers: {
                 "Content-Type": part.datasheetType || "application/pdf",
                 "Cache-Control": "public, max-age=31536000, immutable"

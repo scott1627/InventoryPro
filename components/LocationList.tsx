@@ -76,51 +76,71 @@ export default function LocationList({ initialLocations, allCategories, allLocat
 
     const categoryPaths = useMemo(() => {
         const paths: Record<string, string> = {};
-        const getPath = (id: string): string => {
-            const cat = allCategories.find(c => c.id === id);
+        const catMap = new Map(allCategories.map(c => [c.id, c]));
+        
+        const getPath = (id: string, visited = new Set()): string => {
+            if (paths[id]) return paths[id];
+            if (visited.has(id)) return "...";
+            visited.add(id);
+            
+            const cat = catMap.get(id);
             if (!cat) return "";
-            const parentPath = cat.parentId ? getPath(cat.parentId) : "";
-            return parentPath ? `${parentPath} > ${cat.name}` : cat.name;
+            
+            const parentName = cat.parentId ? getPath(cat.parentId, visited) : "";
+            const fullPath = parentName ? `${parentName} > ${cat.name}` : cat.name;
+            paths[id] = fullPath;
+            return fullPath;
         };
-        allCategories.forEach(cat => {
-            paths[cat.id] = getPath(cat.id);
-        });
+
+        allCategories.forEach(cat => getPath(cat.id));
         return paths;
     }, [allCategories]);
 
     // Organize locations into hierarchy and calculate recursive counts
     const hierarchicalLocations = useMemo(() => {
         const query = locationSearch.toLowerCase();
-        const rootLocations = initialLocations.filter(l => !l.parentId);
+        const locMap = new Map(initialLocations.map(l => [l.id, { ...l, children: [] as Location[] }]));
+        const rootLocations: any[] = [];
 
-        const buildHierarchy = (locs: Location[]): any[] => {
+        // Build hierarchy in O(N)
+        locMap.forEach(loc => {
+            if (loc.parentId && locMap.has(loc.parentId)) {
+                locMap.get(loc.parentId)!.children!.push(loc as Location);
+            } else {
+                rootLocations.push(loc);
+            }
+        });
+
+        // Calculate recursive parts in O(N) using post-order traversal (memoized)
+        const partsMemo = new Map<string, Part[]>();
+        const getRecursiveParts = (id: string): Part[] => {
+            if (partsMemo.has(id)) return partsMemo.get(id)!;
+            const loc = locMap.get(id);
+            if (!loc) return [];
+            
+            const directParts = loc.parts || [];
+            const childParts = (loc.children || []).flatMap(child => getRecursiveParts(child.id));
+            const allParts = [...directParts, ...childParts];
+            partsMemo.set(id, allParts);
+            return allParts;
+        };
+
+        const buildFinalTree = (locs: any[]): any[] => {
             return locs.map(loc => {
-                const children = initialLocations.filter(l => l.parentId === loc.id);
-                const subHierarchy = buildHierarchy(children);
-                
-                // Recursive parts: self + all children's parts
-                const getRecursiveParts = (l: Location, allLocs: Location[]): Part[] => {
-                    const directParts = l.parts;
-                    const childLocs = allLocs.filter(child => child.parentId === l.id);
-                    const childParts = childLocs.flatMap(child => getRecursiveParts(child, allLocs));
-                    return [...directParts, ...childParts];
-                };
-
-                const recursiveParts = getRecursiveParts(loc, initialLocations);
-
+                const recursiveParts = getRecursiveParts(loc.id);
                 return {
                     ...loc,
-                    children: subHierarchy,
+                    children: buildFinalTree(loc.children || []),
                     recursivePartCount: recursiveParts.length,
                     allRecursiveParts: recursiveParts
                 };
             }).filter(loc => 
                 loc.name.toLowerCase().includes(query) || 
-                (loc.children && loc.children.some((child: any) => child.name.toLowerCase().includes(query)))
+                (loc.children && loc.children.length > 0)
             );
         };
 
-        return buildHierarchy(rootLocations);
+        return buildFinalTree(rootLocations);
     }, [initialLocations, locationSearch]);
 
     // Filter parts within selected location (including children if it's a parent)
@@ -283,7 +303,7 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                     <div
                         onClick={() => setSelectedLocation(location)}
                         className={cn(
-                            "glass rounded-xl cursor-pointer transition-all border group relative min-w-fit",
+                            "glass-light rounded-xl cursor-pointer transition-all border group relative min-w-fit",
                             isSel ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-primary/30',
                             depth > 2 ? "p-2" : "p-3"
                         )}
@@ -483,7 +503,7 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                                             setIsDetailModalOpen(true);
                                         }}
                                         className={cn(
-                                            "glass p-4 rounded-xl group cursor-pointer transition-all border",
+                                            "glass-light p-4 rounded-xl group cursor-pointer transition-all border",
                                             selectedPart?.id === part.id ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-primary/50'
                                         )}
                                     >
@@ -500,7 +520,9 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                                                     <p className="font-bold truncate flex items-center gap-2">
                                                         {part.name}
                                                         {part.datasheetUrl && (
-                                                            <FileText size={12} className="text-blue-500 shrink-0" title="Datasheet Available" />
+                                                            <span title="Datasheet Available">
+                                                                <FileText size={12} className="text-blue-500 shrink-0" />
+                                                            </span>
                                                         )}
                                                     </p>
                                                     {part.description && (
