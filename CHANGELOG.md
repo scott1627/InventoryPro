@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.1] - 2026-04-08
+
+### Fixed
+- **Docker Build Error**: Added `.gitkeep` files to the `public/` directory ensuring it is tracked by Git even when empty, resolving build failures on remote servers.
+
 ## [1.6.0] - 2026-04-08
 
 ### Added
