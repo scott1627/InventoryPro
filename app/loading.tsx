@@ -1,3 +1,5 @@
+import { ClipboardList } from "lucide-react";
+
 export default function Loading() {
     return (
         <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-background/30 backdrop-blur-sm animate-fade-in">
@@ -9,7 +11,7 @@ export default function Loading() {
                     
                     {/* Main Logo Card */}
                     <div className="absolute inset-0 rounded-2xl bg-primary shadow-2xl shadow-primary/40 flex items-center justify-center animate-pulse">
-                        <span className="text-4xl font-bold font-mono text-primary-foreground tracking-tighter">IP</span>
+                        <ClipboardList className="w-10 h-10 text-primary-foreground" />
                     </div>
                 </div>
 

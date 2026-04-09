@@ -9,6 +9,7 @@ import { cn } from "../lib/utils";
 import { Providers } from "./providers";
 import UserNav from "../components/UserNav";
 import { getServerAuthSession } from "../lib/auth";
+import { ClipboardList } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export default async function RootLayout({
                                         <MobileNav role={session?.user?.role} />
                                         <div className="flex items-center gap-2">
                                             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                                                <span className="text-primary-foreground font-bold font-mono">IP</span>
+                                                <ClipboardList className="w-5 h-5 text-primary-foreground" />
                                             </div>
                                             <span className="text-xl font-bold tracking-tight hidden xs:block">InventoryPro</span>
                                         </div>

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.2] - 2026-04-08
+
+### Changed
+- **Branding Update**: Replaced the "IP" initialism with a professional `ClipboardList` icon in the header and global loading state for a more illustrative brand identity.
+
 ## [1.6.1] - 2026-04-08
 
 ### Fixed
