@@ -5,14 +5,8 @@ export default function Loading() {
         <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-background/30 backdrop-blur-sm animate-fade-in">
             <div className="relative flex flex-col items-center gap-6">
                 {/* Logo Animation */}
-                <div className="relative h-20 w-20">
-                    {/* Pulsing Outer Ring */}
-                    <div className="absolute inset-0 rounded-2xl bg-primary/20 animate-ping duration-[2000ms]" />
-                    
-                    {/* Main Logo Card */}
-                    <div className="absolute inset-0 rounded-2xl bg-primary shadow-2xl shadow-primary/40 flex items-center justify-center animate-pulse">
-                        <ClipboardList className="w-10 h-10 text-primary-foreground" />
-                    </div>
+                <div className="relative flex items-center justify-center">
+                    <ClipboardList className="w-24 h-24 text-primary animate-pulse" />
                 </div>
 
                 {/* Subtext and Loader Line */}

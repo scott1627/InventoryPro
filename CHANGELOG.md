@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.3] - 2026-04-08
+
+### Changed
+- **Loading UI Refinement**: Simplified the loading screen design by removing the icon container and increasing the clipboard size for a cleaner, more focused visual during transitions.
+
 ## [1.6.2] - 2026-04-08
 
 ### Changed
