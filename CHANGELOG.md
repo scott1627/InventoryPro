@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.4] - 2026-04-12
+
+### Changed
+- **Neutral Page Load**: The Categories and Locations pages no longer automatically select the first item on load. Users are now prompted to select a category or location to view its parts.
+
 ## [1.6.3] - 2026-04-08
 
 ### Changed

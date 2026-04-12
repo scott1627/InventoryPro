@@ -47,7 +47,7 @@ interface CategoryListProps {
 export default function CategoryList({ initialCategories, allCategories, allLocations }: CategoryListProps) {
     const [categorySearch, setCategorySearch] = useState("");
     const [partSearch, setPartSearch] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState<Category | null>(initialCategories[0] || null);
+    const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [selectedPart, setSelectedPart] = useState<Part | null>(null);
     const [isEditing, setIsEditing] = useState<string | null>(null);
     const [editName, setEditName] = useState("");

@@ -57,7 +57,7 @@ const PRESET_COLORS = []; // Removed for spectrum picker
 export default function LocationList({ initialLocations, allCategories, allLocations }: LocationListProps) {
     const [locationSearch, setLocationSearch] = useState("");
     const [partSearch, setPartSearch] = useState("");
-    const [selectedLocation, setSelectedLocation] = useState<Location | null>(initialLocations[0] || null);
+    const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
     const [selectedPart, setSelectedPart] = useState<Part | null>(null);
     const [isEditing, setIsEditing] = useState<string | null>(null);
     const [editName, setEditName] = useState("");
@@ -599,13 +599,15 @@ export default function LocationList({ initialLocations, allCategories, allLocat
                 />
             )}
 
-            <AddPartModal
-                isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
-                categories={allCategories}
-                locations={allLocations}
-                initialLocationId={selectedLocation.id}
-            />
+            {selectedLocation && (
+                <AddPartModal
+                    isOpen={isAddModalOpen}
+                    onClose={() => setIsAddModalOpen(false)}
+                    categories={allCategories}
+                    locations={allLocations}
+                    initialLocationId={selectedLocation.id}
+                />
+            )}
         </div>
     );
 }
