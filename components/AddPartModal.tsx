@@ -2,10 +2,11 @@
 
 import { useState, useTransition, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { X, Plus, Package, MapPin, Tag, Hash, FileText, Upload, Loader2, CheckCircle2, Bell } from "lucide-react";
+import { X, Plus, Package, MapPin, Tag, Hash, FileText, Upload, Loader2, CheckCircle2, Bell, Barcode } from "lucide-react";
 import { addPart } from "../app/actions/parts";
 import CategoryPicker from "./CategoryPicker";
 import LocationPicker from "./LocationPicker";
+import IconPicker from "./IconPicker";
 
 interface AddPartModalProps {
     isOpen: boolean;
@@ -24,6 +25,7 @@ export default function AddPartModal({ isOpen, onClose, categories, locations, i
     const [selectedParentId, setSelectedParentId] = useState<string>("");
     const [selectedLocationId, setSelectedLocationId] = useState(initialLocationId || "");
     const [alertsEnabled, setAlertsEnabled] = useState(false);
+    const [iconId, setIconId] = useState<string | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -119,19 +121,32 @@ export default function AddPartModal({ isOpen, onClose, categories, locations, i
                         )}
 
                         <div className="space-y-5">
-                            {/* Row 1: Part Name */}
-                            <div className="space-y-2.5">
-                                <label className="text-sm font-semibold flex items-center gap-2.5 text-foreground/90">
-                                    <Package size={16} className="text-primary/70" /> Part Name
-                                </label>
-                                <input
-                                    name="name"
-                                    type="text"
-                                    required
-                                    autoFocus
-                                    placeholder="e.g. ESP32-WROOM-32"
-                                    className="w-full px-4 py-3 bg-secondary/40 rounded-xl border border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-muted-foreground/50 shadow-inner"
-                                />
+                            {/* Row 1: Part Name & UPC */}
+                            <div className="grid grid-cols-2 gap-5">
+                                <div className="space-y-2.5">
+                                    <label className="text-sm font-semibold flex items-center gap-2.5 text-foreground/90">
+                                        <Package size={16} className="text-primary/70" /> Part Name
+                                    </label>
+                                    <input
+                                        name="name"
+                                        type="text"
+                                        required
+                                        autoFocus
+                                        placeholder="e.g. ESP32-WROOM-32"
+                                        className="w-full px-4 py-3 bg-secondary/40 rounded-xl border border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-muted-foreground/50 shadow-inner"
+                                    />
+                                </div>
+                                <div className="space-y-2.5">
+                                    <label className="text-sm font-semibold flex items-center gap-2.5 text-foreground/90">
+                                        <Barcode size={16} className="text-primary/70" /> UPC / Barcode
+                                    </label>
+                                    <input
+                                        name="upc"
+                                        type="text"
+                                        placeholder="Scan or leave blank..."
+                                        className="w-full px-4 py-3 bg-secondary/40 rounded-xl border border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-muted-foreground/50 shadow-inner"
+                                    />
+                                </div>
                             </div>
 
                             {/* Row 2: Description */}
@@ -171,6 +186,27 @@ export default function AddPartModal({ isOpen, onClose, categories, locations, i
                                 </div>
                             </div>
 
+                            {/* Row 3.5: Icon & Reorder Link */}
+                            <div className="grid grid-cols-2 gap-5">
+                                <div className="space-y-2.5">
+                                    <label className="text-sm font-semibold flex items-center gap-2.5 text-foreground/90">
+                                        <Package size={16} className="text-primary/70" /> Thumbnail Icon
+                                    </label>
+                                    <IconPicker value={iconId} onChange={setIconId} />
+                                </div>
+                                <div className="space-y-2.5">
+                                    <label className="text-sm font-semibold flex items-center gap-2.5 text-foreground/90">
+                                        <Tag size={16} className="text-primary/70" /> Reorder Link
+                                    </label>
+                                    <input
+                                        name="reorderLink"
+                                        type="url"
+                                        placeholder="https://..."
+                                        className="w-full px-4 py-3 bg-secondary/40 rounded-xl border border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-inner"
+                                    />
+                                </div>
+                            </div>
+
                             {/* Row 4: Photos & Datasheets */}
                             <div className="grid grid-cols-2 gap-5">
                                 <div className="space-y-2.5">
@@ -195,19 +231,6 @@ export default function AddPartModal({ isOpen, onClose, categories, locations, i
                                         className="w-full px-4 py-2 text-xs bg-secondary/40 rounded-xl border border-border/50 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-primary/20 file:text-primary hover:file:bg-primary/30 outline-none transition-all cursor-pointer shadow-inner"
                                     />
                                 </div>
-                            </div>
-
-                            {/* Row 5: Reorder Link */}
-                            <div className="space-y-2.5">
-                                <label className="text-sm font-semibold flex items-center gap-2.5 text-foreground/90">
-                                    <Tag size={16} className="text-primary/70" /> Reorder Link
-                                </label>
-                                <input
-                                    name="reorderLink"
-                                    type="url"
-                                    placeholder="https://..."
-                                    className="w-full px-4 py-3 bg-secondary/40 rounded-xl border border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-inner"
-                                />
                             </div>
 
                             {/* Row 6: Initial Stock */}

@@ -26,8 +26,11 @@ model Part {
   imageUrl        String?  // Local path to image (Legacy)
   imageContent    Bytes?   // Image Blob
   imageType       String?  // MIME Type
+  iconId          String?
+  icon            Icon?    @relation(fields: [iconId], references: [id], onDelete: SetNull)
   minStock            Int      @default(0)
   lowStockAlertEnabled Boolean @default(false)
+  upc                 String?  @unique
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -42,6 +45,15 @@ model Category {
   parent    Category? @relation("SubCategories", fields: [parentId], references: [id])
   parentId  String?
   children  Category[] @relation("SubCategories")
+}
+
+model Icon {
+  id        String   @id @default(cuid())
+  name      String
+  content   Bytes
+  type      String
+  parts     Part[]
+  createdAt DateTime @default(now())
 }
 
 model StorageLocation {

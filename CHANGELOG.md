@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.0] - 2026-05-02
+
+### Added
+- **Icon Library**: Introduced a centralized, reusable vector Icon Library for parts, drastically improving UI loading performance in list views.
+- **Icon Picker Component**: Added an integrated UI to select or upload new SVG/PNG icons directly from the part creation/edit modals.
+- **Default Icon Pack**: Shipped a pre-loaded pack of minimal electronics icons (Resistors, Capacitors, Memory, ICs, etc.) out-of-the-box.
+- **Barcode Support**: Added support for searching parts using auto-generated UPC numbers via standard keyboard-emulating barcode scanners, along with quick copy capabilities.
+
 ## [1.6.4] - 2026-04-12
 
 ### Changed

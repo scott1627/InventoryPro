@@ -24,6 +24,7 @@ interface Part {
     minStock: number;
     lowStockAlertEnabled: boolean;
     reorderLink: string | null;
+    upc: string | null;
 }
 
 interface PartDetailModalProps {

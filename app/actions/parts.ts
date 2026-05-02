@@ -19,6 +19,16 @@ export async function addPart(formData: FormData) {
         const minStock = parseInt(formData.get("minStock") as string) || 0;
         const lowStockAlertEnabled = formData.get("lowStockAlertEnabled") === "on";
         const reorderLink = formData.get("reorderLink") as string;
+        let upc = formData.get("upc") as string | null;
+        const iconId = formData.get("iconId") as string | null;
+
+        // Auto-generate UPC if not provided (12 digits)
+        if (!upc || upc.trim() === "") {
+            const randomDigits = Math.floor(100000000000 + Math.random() * 900000000000);
+            upc = randomDigits.toString();
+        } else {
+            upc = upc.trim();
+        }
 
         // Handle datasheet upload
         const datasheet = formData.get("datasheet") as File;
@@ -74,11 +84,13 @@ export async function addPart(formData: FormData) {
                 datasheetType,
                 imageContent,
                 imageType,
-                category: { connect: { id: finalCategoryId } },
-                storageLocation: { connect: { id: finalLocationId } },
+                categoryId: finalCategoryId,
+                storageLocationId: finalLocationId,
                 minStock,
                 lowStockAlertEnabled,
                 reorderLink,
+                upc,
+                iconId: iconId && iconId !== "" ? iconId : null,
                 stockLevels: {
                     create: {
                         quantity: stock
@@ -129,6 +141,8 @@ export async function updatePart(id: string, formData: FormData) {
         const minStock = parseInt(formData.get("minStock") as string) || 0;
         const lowStockAlertEnabled = formData.get("lowStockAlertEnabled") === "on";
         const reorderLink = formData.get("reorderLink") as string;
+        const upc = (formData.get("upc") as string)?.trim() || null;
+        const iconId = formData.get("iconId") as string | null;
 
         const datasheet = formData.get("datasheet") as File;
         let datasheetContent = undefined;
@@ -188,11 +202,13 @@ export async function updatePart(id: string, formData: FormData) {
                 ...(imageContent !== undefined && { imageContent, imageType }),
                 ...(datasheetContent !== undefined && { datasheetUrl: datasheetContent ? `/api/parts/${id}/datasheet?v=${version}` : null }),
                 ...(imageContent !== undefined && { imageUrl: imageContent ? `/api/parts/${id}/image?v=${version}` : null }),
-                category: { connect: { id: finalCategoryId } },
-                storageLocation: { connect: { id: finalLocationId } },
+                categoryId: finalCategoryId,
+                storageLocationId: finalLocationId,
                 minStock,
                 lowStockAlertEnabled,
                 reorderLink,
+                upc,
+                iconId: iconId && iconId !== "" ? iconId : null,
                 stockLevels: {
                     create: {
                         quantity: stock

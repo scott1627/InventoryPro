@@ -39,4 +39,4 @@ EXPOSE 3000
 
 # Prisma push and seed happen here to ensure DB is ready on first run
 # But setup.sh also runs them, which is fine (redundant but safe)
-CMD npx prisma generate && npx prisma db push && npm start
+CMD npx prisma generate && npx prisma db push --accept-data-loss && npm start

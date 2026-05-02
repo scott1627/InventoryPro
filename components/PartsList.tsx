@@ -24,6 +24,8 @@ interface Part {
     imageUrl: string | null;
     minStock: number;
     lowStockAlertEnabled: boolean;
+    upc: string | null;
+    iconId: string | null;
 }
 
 interface PartsListProps {
@@ -81,7 +83,8 @@ export default function PartsList({ initialParts, categories, locations }: Parts
                 part.name.toLowerCase().includes(query) ||
                 (categoryPaths[part.categoryId] || "").toLowerCase().includes(query) ||
                 part.storageLocation.name.toLowerCase().includes(query) ||
-                part.description?.toLowerCase().includes(query)
+                part.description?.toLowerCase().includes(query) ||
+                part.upc?.toLowerCase().includes(query)
             );
         }
 
@@ -293,8 +296,8 @@ export default function PartsList({ initialParts, categories, locations }: Parts
                             <div className="flex items-center justify-between gap-4">
                                 <div className="flex items-center gap-4 truncate">
                                     <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
-                                        {part.imageUrl ? (
-                                            <img src={part.imageUrl} alt={part.name} className="h-full w-full object-cover" />
+                                        {part.iconId ? (
+                                            <img src={`/api/icons/${part.iconId}`} alt="Icon" className="h-full w-full object-contain p-1 bg-white" />
                                         ) : (
                                             <Hash size={18} className="text-muted-foreground" />
                                         )}

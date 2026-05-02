@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { FileText, ChevronRight, MapPin, Package, AlertTriangle, ExternalLink, Plus, Minus, Loader2, X } from "lucide-react";
+import { FileText, ChevronRight, MapPin, Package, AlertTriangle, ExternalLink, Plus, Minus, Loader2, X, Barcode as BarcodeIcon, Copy, Check, Printer } from "lucide-react";
+import Barcode from "react-barcode";
 import PDFViewer from "./PDFViewer";
 import { cn } from "../lib/utils";
 import { adjustStock } from "../app/actions/parts";
@@ -25,6 +26,7 @@ interface Part {
     minStock: number;
     lowStockAlertEnabled: boolean;
     reorderLink: string | null;
+    upc: string | null;
 }
 
 interface PartDetailsProps {
@@ -38,6 +40,48 @@ export default function PartDetails({ part, isInline, categoryPath }: PartDetail
     const [adjustQuantity, setAdjustQuantity] = useState(1);
     const [isAdjusting, setIsAdjusting] = useState(false);
     const [isEnlarged, setIsEnlarged] = useState(false);
+    const [copiedUPC, setCopiedUPC] = useState(false);
+
+    const handleCopyUPC = () => {
+        if (part.upc) {
+            navigator.clipboard.writeText(part.upc);
+            setCopiedUPC(true);
+            setTimeout(() => setCopiedUPC(false), 2000);
+        }
+    };
+
+    const handlePrintBarcode = () => {
+        const barcodeEl = document.getElementById('barcode-svg-container');
+        if (!barcodeEl) return;
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Print Barcode - ${part.name}</title>
+                        <style>
+                            body { margin: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
+                            @media print {
+                                @page { margin: 0; }
+                                body { height: auto; margin: 1cm; display: block; text-align: center; }
+                            }
+                            svg { max-width: 100%; height: auto; display: inline-block; }
+                        </style>
+                    </head>
+                    <body style="text-align: center;">
+                        <div style="text-align: center; margin-bottom: 10px; font-weight: bold; font-size: 20px;">${part.name}</div>
+                        <div style="display: inline-block; text-align: center;">
+                            ${barcodeEl.innerHTML}
+                        </div>
+                        <script>
+                            window.onload = () => { window.print(); window.close(); }
+                        </script>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    };
 
     const handleAdjust = async (amount: number) => {
         setIsAdjusting(true);
@@ -162,6 +206,44 @@ export default function PartDetails({ part, isInline, categoryPath }: PartDetail
                         <div className="space-y-2">
                             <p className="text-[10px] text-muted-foreground uppercase">Description</p>
                             <p className="text-sm text-foreground/80 leading-relaxed">{part.description}</p>
+                        </div>
+                    )}
+
+                    {part.upc && (
+                        <div className="space-y-2 mt-2">
+                            <p className="text-[10px] text-muted-foreground uppercase flex items-center gap-1.5">
+                                <BarcodeIcon size={12} /> Barcode / UPC
+                            </p>
+                            <div className="relative p-4 bg-white rounded-xl flex items-center justify-center shadow-sm overflow-hidden border border-border/50 group/barcode">
+                                <div id="barcode-svg-container">
+                                    <Barcode 
+                                        value={part.upc} 
+                                        format="CODE128" 
+                                        width={2} 
+                                        height={50} 
+                                        displayValue={true} 
+                                        background="#ffffff" 
+                                        lineColor="#000000"
+                                        margin={0}
+                                    />
+                                </div>
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/barcode:opacity-100 transition-opacity flex items-center justify-center gap-4 backdrop-blur-[2px]">
+                                    <button
+                                        onClick={handleCopyUPC}
+                                        className="p-3 bg-white/20 hover:bg-white/30 text-white rounded-full transition-all hover:scale-110 flex items-center justify-center"
+                                        title="Copy UPC"
+                                    >
+                                        {copiedUPC ? <Check size={20} className="text-green-400" /> : <Copy size={20} />}
+                                    </button>
+                                    <button
+                                        onClick={handlePrintBarcode}
+                                        className="p-3 bg-white/20 hover:bg-white/30 text-white rounded-full transition-all hover:scale-110 flex items-center justify-center"
+                                        title="Print Barcode"
+                                    >
+                                        <Printer size={20} />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
 
