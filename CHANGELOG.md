@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.7.1] - 2026-05-03
+
+### Added
+- **Admin Icon Management**: Admins can now delete icons from the shared pool directly from the Icon Picker interface.
+
 ## [1.7.0] - 2026-05-02
 
 ### Added

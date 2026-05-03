@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { getIcons, addIcon } from "../app/actions/icons";
-import { Upload, X, Loader2, Check } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { getIcons, addIcon, deleteIcon } from "../app/actions/icons";
+import { Upload, X, Loader2, Check, Trash2 } from "lucide-react";
 import { cn } from "../lib/utils";
 
 interface IconData {
@@ -22,6 +23,8 @@ export default function IconPicker({ value, onChange, className }: IconPickerPro
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
+    const { data: session } = useSession();
+    const isAdmin = session?.user?.role === "ADMIN";
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const fetchIcons = async () => {
@@ -111,27 +114,50 @@ export default function IconPicker({ value, onChange, className }: IconPickerPro
                             ) : (
                                 <div className="grid grid-cols-5 gap-3">
                                     {icons.map((icon) => (
-                                        <button
-                                            key={icon.id}
-                                            type="button"
-                                            onClick={() => {
-                                                onChange(icon.id);
-                                                setIsOpen(false);
-                                            }}
-                                            className={cn(
-                                                "aspect-square relative flex items-center justify-center rounded-xl border transition-all p-2",
-                                                value === icon.id 
-                                                    ? "border-primary ring-2 ring-primary/20 bg-primary/5" 
-                                                    : "border-border/50 hover:border-primary/50 hover:bg-secondary/50"
+                                        <div key={icon.id} className="group relative">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    onChange(icon.id);
+                                                    setIsOpen(false);
+                                                }}
+                                                className={cn(
+                                                    "w-full aspect-square relative flex items-center justify-center rounded-xl border transition-all p-2",
+                                                    value === icon.id 
+                                                        ? "border-primary ring-2 ring-primary/20 bg-primary/5" 
+                                                        : "border-border/50 hover:border-primary/50 hover:bg-secondary/50"
+                                                )}
+                                            >
+                                                <img src={`/api/icons/${icon.id}`} alt={icon.name} className="w-full h-full object-contain" />
+                                                {value === icon.id && (
+                                                    <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-0.5">
+                                                        <Check size={12} />
+                                                    </div>
+                                                )}
+                                            </button>
+                                            
+                                            {isAdmin && (
+                                                <button
+                                                    type="button"
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        if (confirm(`Are you sure you want to delete the icon "${icon.name}"?`)) {
+                                                            const res = await deleteIcon(icon.id);
+                                                            if (res.success) {
+                                                                setIcons(icons.filter(i => i.id !== icon.id));
+                                                                if (value === icon.id) onChange(null);
+                                                            } else {
+                                                                alert(res.error || "Failed to delete icon");
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="absolute -top-1 -left-1 p-1 bg-destructive text-destructive-foreground rounded-md opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm"
+                                                    title="Delete Icon"
+                                                >
+                                                    <Trash2 size={10} />
+                                                </button>
                                             )}
-                                        >
-                                            <img src={`/api/icons/${icon.id}`} alt={icon.name} className="w-full h-full object-contain" />
-                                            {value === icon.id && (
-                                                <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-0.5">
-                                                    <Check size={12} />
-                                                </div>
-                                            )}
-                                        </button>
+                                        </div>
                                     ))}
                                     
                                     <button
