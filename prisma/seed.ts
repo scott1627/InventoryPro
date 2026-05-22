@@ -4,6 +4,8 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
+  console.log("--- Starting Seeding ---")
+
   const adminPassword = await bcrypt.hash('password123', 10)
   
   const admin = await prisma.user.upsert({
@@ -15,7 +17,7 @@ async function main() {
       role: 'ADMIN',
     },
   })
-  console.log({ admin })
+  console.log("✓ Admin user verified.")
 
   // Basic Icon Pack
   const icons = [
@@ -44,9 +46,10 @@ async function main() {
           type: 'image/svg+xml'
         }
       });
-      console.log(`Created icon: ${icon.name}`);
     }
   }
+  console.log("✓ Basic icons pack seeded.")
+  console.log("--- Seeding Completed Successfully ---")
 }
 
 main()
@@ -58,5 +61,3 @@ main()
     await prisma.$disconnect()
     process.exit(1)
   })
-
-export {}
