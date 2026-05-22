@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.6] - 2026-05-22
+
+### Fixed
+- **Clean Database Seeding**: Completely removed legacy, local test/mock parts and demo category seeding code from both JS and TS Prisma seed scripts. Running setup/update scripts on live environments now only creates the baseline admin user and default icon library pool, preventing any unsolicited test inventory injection.
+
 ## [1.8.5] - 2026-05-22
 
 ### Fixed
