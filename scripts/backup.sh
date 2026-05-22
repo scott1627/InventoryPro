@@ -17,7 +17,7 @@ echo "Starting backup: $BACKUP_NAME"
 docker exec "$CONTAINER_NAME" pg_dump -U "$DB_USER" "$DB_NAME" > "$BACKUP_DIR/$BACKUP_NAME.sql"
 
 # Copy Uploads (PDFs)
-cp -r /home/user/.gemini/antigravity/scratch/inventory-pro/public/uploads "$BACKUP_DIR/$BACKUP_NAME-uploads"
+docker cp inventory-pro-app-1:/app/public/uploads "$BACKUP_DIR/$BACKUP_NAME-uploads"
 
 # Create archive
 tar -czf "$BACKUP_DIR/$BACKUP_NAME.tar.gz" -C "$BACKUP_DIR" "$BACKUP_NAME.sql" "$BACKUP_NAME-uploads"

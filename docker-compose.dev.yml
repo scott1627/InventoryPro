@@ -19,7 +19,7 @@ services:
       - .:/app
       - /app/node_modules
       - /app/.next
-      - ./public/uploads:/app/public/uploads
+      - uploads_data:/app/public/uploads
     depends_on:
       - db
 
@@ -34,3 +34,4 @@ services:
 
 volumes:
   db_data:
+  uploads_data:

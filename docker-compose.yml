@@ -20,7 +20,7 @@ services:
           cpus: '1.0'
           memory: 1G
     volumes:
-      - ./public/uploads:/app/public/uploads
+      - uploads_data:/app/public/uploads
     depends_on:
       - db
 
@@ -54,3 +54,4 @@ services:
 
 volumes:
   db_data:
+  uploads_data:
