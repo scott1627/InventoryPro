@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.4] - 2026-05-22
+
+### Fixed
+- **Browser Compatibility**: Explicitly referenced standard global `window.confirm` to ensure bulletproof dialog handler execution on Google Chrome and prevent quiet failures.
+
 ## [1.8.3] - 2026-05-22
 
 ### Fixed

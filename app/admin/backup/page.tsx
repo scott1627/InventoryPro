@@ -53,7 +53,7 @@ export default function BackupPage() {
     const handleRestore = async () => {
         if (!selectedFile) return;
 
-        if (!confirm("CRITICAL WARNING: This will DELETE all current data and replace it with the content of the backup file. This action CANNOT be undone. Are you absolutely certain you want to proceed?")) {
+        if (!window.confirm("CRITICAL WARNING: This will DELETE all current data and replace it with the content of the backup file. This action CANNOT be undone. Are you absolutely certain you want to proceed?")) {
             return;
         }
 
