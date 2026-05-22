@@ -15,12 +15,19 @@ export default function BackupPage() {
         setMessage(null);
         try {
             const res = await getDatabaseBackup();
-            if (res.success && res.data) {
-                const blob = new Blob([res.data], { type: "application/sql" });
+            if (res.success && res.data && res.filename) {
+                const byteCharacters = atob(res.data);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: "application/gzip" });
+
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = `inventory-pro-backup-${new Date().toISOString().split("T")[0]}.sql`;
+                a.download = res.filename;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
@@ -56,36 +63,32 @@ export default function BackupPage() {
             console.log("Restore: Starting restore process for file:", selectedFile.name);
             setMessage({ text: "Reading file...", type: "success" });
             
-            // Read file content as a Promise
-            const content = await new Promise<string>((resolve, reject) => {
+            const base64Content = await new Promise<string>((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     console.log("Restore: FileReader onload triggered");
-                    resolve(e.target?.result as string);
+                    const result = e.target?.result as string;
+                    const base64 = result.split(",")[1];
+                    resolve(base64);
                 };
                 reader.onerror = (err) => {
                     console.error("Restore: FileReader error", err);
                     reject(new Error("Failed to read the backup file."));
                 };
-                reader.onprogress = (e) => {
-                    if (e.lengthComputable) {
-                        console.log(`Restore: Reading progress: ${Math.round((e.loaded / e.total) * 100)}%`);
-                    }
-                };
-                reader.readAsText(selectedFile);
+                reader.readAsDataURL(selectedFile);
             });
 
-            console.log("Restore: File read successfully, size:", content.length);
+            console.log("Restore: File read successfully, base64 length:", base64Content.length);
             setMessage({ text: "Uploading and restoring... (This may take a minute)", type: "success" });
 
-            const res = await restoreDatabase(content);
+            const res = await restoreDatabase(base64Content, selectedFile.name);
             console.log("Restore: Server action response received:", res);
             if (res.success) {
-                setMessage({ text: "Database restored successfully! Refreshing...", type: "success" });
+                setMessage({ text: "System restored successfully! Refreshing...", type: "success" });
                 setTimeout(() => window.location.reload(), 2000);
             } else {
                 console.error("Restore failed on server:", res.error);
-                setMessage({ text: res.error || "Failed to restore database.", type: "error" });
+                setMessage({ text: res.error || "Failed to restore backup.", type: "error" });
             }
         } catch (error: any) {
             console.error("Restore process error:", error);
@@ -99,8 +102,8 @@ export default function BackupPage() {
         <div className="flex-1 space-y-6">
             <div className="flex flex-col gap-2 xs:flex-row xs:items-center xs:justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Database Backup & Restore</h1>
-                    <p className="text-muted-foreground mt-1 text-sm">Safeguard your inventory data or migrate between systems.</p>
+                    <h1 className="text-3xl font-bold tracking-tight">System Backup & Restore</h1>
+                    <p className="text-muted-foreground mt-1 text-sm">Safeguard your inventory database along with all media files, or migrate between hosts.</p>
                 </div>
             </div>
 
@@ -112,8 +115,8 @@ export default function BackupPage() {
                     </div>
                     <h2 className="text-xl font-bold">Export Backup</h2>
                     <p className="text-muted-foreground text-sm flex-grow">
-                        Generate a full snapshot of your database (parts, categories, locations, jobs, BOMs, and users). 
-                        This file is downloaded as a standard PostgreSQL SQL dump.
+                        Generate a full snapshot of your database (parts, categories, locations, jobs, BOMs, users) and all stored images and datasheets. 
+                        This file is downloaded as a compressed `.tar.gz` archive.
                     </p>
                     <div className="pt-4">
                         <button
@@ -122,7 +125,7 @@ export default function BackupPage() {
                             className="w-full bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2.5 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
                         >
                             {isDownloading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-                            {isDownloading ? "Generating..." : "Download SQL Backup"}
+                            {isDownloading ? "Generating..." : "Download Compressed Backup"}
                         </button>
                     </div>
                 </div>
@@ -132,16 +135,16 @@ export default function BackupPage() {
                     <div className="bg-amber-500/10 h-10 w-10 shrink-0 rounded-lg flex items-center justify-center text-amber-500 mb-2">
                         <Upload size={20} />
                     </div>
-                    <h2 className="text-xl font-bold">Restore Database</h2>
+                    <h2 className="text-xl font-bold">Restore System</h2>
                     <p className="text-muted-foreground text-sm flex-grow">
-                        Upload a previously exported SQL backup to restore your entire system to that state. 
+                        Upload a previously exported compressed backup (`.tar.gz`) or a legacy blob backup (`.sql`) to restore your entire system. 
                         Note: This will overwrite EVERYTHING.
                     </p>
                     <div className="space-y-4 pt-4">
                         <div className="relative group">
                             <input
                                 type="file"
-                                accept=".sql"
+                                accept=".sql,.tar.gz,.gz"
                                 onChange={handleFileChange}
                                 className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
                             />
@@ -176,7 +179,8 @@ export default function BackupPage() {
                 <div className="space-y-1">
                     <h3 className="text-sm font-bold text-amber-500">Important Precautions</h3>
                     <ul className="text-xs text-muted-foreground list-disc list-inside space-y-1">
-                        <li>Only upload backup files generated by this version of InventoryPro.</li>
+                        <li>Supports both modern `.tar.gz` and legacy `.sql` database backups.</li>
+                        <li>Legacy `.sql` backups will automatically have their media blobs extracted to the host filesystem.</li>
                         <li>The system will briefly disconnect while the database is being reset during restoration.</li>
                         <li>Ensure you have a recent reliable backup before performing a restore.</li>
                     </ul>

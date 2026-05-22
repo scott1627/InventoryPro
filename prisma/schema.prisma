@@ -14,7 +14,6 @@ model Part {
   description     String?
   footprint       String?
   datasheetUrl    String?  // Local path to PDF (Legacy)
-  datasheetContent Bytes?   // PDF Blob
   datasheetType    String?  // MIME Type
   category        Category @relation(fields: [categoryId], references: [id])
   categoryId      String
@@ -24,7 +23,6 @@ model Part {
   bomItems        BOMItem[]
   reorderLink     String?
   imageUrl        String?  // Local path to image (Legacy)
-  imageContent    Bytes?   // Image Blob
   imageType       String?  // MIME Type
   iconId          String?
   icon            Icon?    @relation(fields: [iconId], references: [id], onDelete: SetNull)

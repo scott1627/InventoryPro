@@ -32,19 +32,17 @@ export async function addPart(formData: FormData) {
 
         // Handle datasheet upload
         const datasheet = formData.get("datasheet") as File;
-        let datasheetContent: Buffer | undefined = undefined;
-        let datasheetType: string | undefined = undefined;
-        if (datasheet && datasheet.size > 0) {
-            datasheetContent = Buffer.from(await datasheet.arrayBuffer());
+        let datasheetType: string | null = null;
+        const hasDatasheet = datasheet && datasheet.size > 0;
+        if (hasDatasheet) {
             datasheetType = datasheet.type;
         }
 
         // Handle image upload
         const image = formData.get("image") as File;
-        let imageContent: Buffer | undefined = undefined;
-        let imageType: string | undefined = undefined;
-        if (image && image.size > 0) {
-            imageContent = Buffer.from(await image.arrayBuffer());
+        let imageType: string | null = null;
+        const hasImage = image && image.size > 0;
+        if (hasImage) {
             imageType = image.type;
         }
 
@@ -80,9 +78,7 @@ export async function addPart(formData: FormData) {
             data: {
                 name,
                 description,
-                datasheetContent,
                 datasheetType,
-                imageContent,
                 imageType,
                 categoryId: finalCategoryId,
                 storageLocationId: finalLocationId,
@@ -99,15 +95,36 @@ export async function addPart(formData: FormData) {
             }
         });
 
-        // 4. Update with virtual URLs for the UI (with cache busting)
+        // 4. Write uploads to filesystem & Update virtual URLs
         const version = Date.now();
-        await prisma.part.update({
-            where: { id: part.id },
-            data: {
-                imageUrl: imageContent ? `/api/parts/${part.id}/image?v=${version}` : null,
-                datasheetUrl: datasheetContent ? `/api/parts/${part.id}/datasheet?v=${version}` : null,
-            }
-        });
+        let imageUrl: string | null = null;
+        let datasheetUrl: string | null = null;
+
+        if (hasImage) {
+            const uploadDir = path.join(process.cwd(), "public", "uploads", "images");
+            await fs.mkdir(uploadDir, { recursive: true });
+            const imageBuffer = Buffer.from(await image.arrayBuffer());
+            await fs.writeFile(path.join(uploadDir, part.id), imageBuffer);
+            imageUrl = `/api/parts/${part.id}/image?v=${version}`;
+        }
+
+        if (hasDatasheet) {
+            const uploadDir = path.join(process.cwd(), "public", "uploads", "datasheets");
+            await fs.mkdir(uploadDir, { recursive: true });
+            const datasheetBuffer = Buffer.from(await datasheet.arrayBuffer());
+            await fs.writeFile(path.join(uploadDir, part.id), datasheetBuffer);
+            datasheetUrl = `/api/parts/${part.id}/datasheet?v=${version}`;
+        }
+
+        if (hasImage || hasDatasheet) {
+            await prisma.part.update({
+                where: { id: part.id },
+                data: {
+                    imageUrl,
+                    datasheetUrl,
+                }
+            });
+        }
 
         await prisma.activityLog.create({
             data: {
@@ -144,22 +161,6 @@ export async function updatePart(id: string, formData: FormData) {
         const upc = (formData.get("upc") as string)?.trim() || null;
         const iconId = formData.get("iconId") as string | null;
 
-        const datasheet = formData.get("datasheet") as File;
-        let datasheetContent = undefined;
-        let datasheetType = undefined;
-        if (datasheet && datasheet.size > 0) {
-            datasheetContent = Buffer.from(await datasheet.arrayBuffer());
-            datasheetType = datasheet.type;
-        }
-
-        const image = formData.get("image") as File;
-        let imageContent = undefined;
-        let imageType = undefined;
-        if (image && image.size > 0) {
-            imageContent = Buffer.from(await image.arrayBuffer());
-            imageType = image.type;
-        }
-
         let finalCategoryId = categoryId;
         if (!finalCategoryId) {
             let unassigned = await prisma.category.findFirst({
@@ -193,28 +194,48 @@ export async function updatePart(id: string, formData: FormData) {
         const oldStock = oldPart?.stockLevels[0]?.quantity || 0;
 
         const version = Date.now();
-        const part = await prisma.part.update({
-            where: { id },
-            data: {
-                name,
-                description,
-                ...(datasheetContent !== undefined && { datasheetContent, datasheetType }),
-                ...(imageContent !== undefined && { imageContent, imageType }),
-                ...(datasheetContent !== undefined && { datasheetUrl: datasheetContent ? `/api/parts/${id}/datasheet?v=${version}` : null }),
-                ...(imageContent !== undefined && { imageUrl: imageContent ? `/api/parts/${id}/image?v=${version}` : null }),
-                categoryId: finalCategoryId,
-                storageLocationId: finalLocationId,
-                minStock,
-                lowStockAlertEnabled,
-                reorderLink,
-                upc,
-                iconId: iconId && iconId !== "" ? iconId : null,
-                stockLevels: {
-                    create: {
-                        quantity: stock
-                    }
+        const updateData: any = {
+            name,
+            description,
+            categoryId: finalCategoryId,
+            storageLocationId: finalLocationId,
+            minStock,
+            lowStockAlertEnabled,
+            reorderLink,
+            upc,
+            iconId: iconId && iconId !== "" ? iconId : null,
+            stockLevels: {
+                create: {
+                    quantity: stock
                 }
             }
+        };
+
+        const datasheet = formData.get("datasheet") as File;
+        if (datasheet && datasheet.size > 0) {
+            const uploadDir = path.join(process.cwd(), "public", "uploads", "datasheets");
+            await fs.mkdir(uploadDir, { recursive: true });
+            const datasheetBuffer = Buffer.from(await datasheet.arrayBuffer());
+            await fs.writeFile(path.join(uploadDir, id), datasheetBuffer);
+            
+            updateData.datasheetType = datasheet.type;
+            updateData.datasheetUrl = `/api/parts/${id}/datasheet?v=${version}`;
+        }
+
+        const image = formData.get("image") as File;
+        if (image && image.size > 0) {
+            const uploadDir = path.join(process.cwd(), "public", "uploads", "images");
+            await fs.mkdir(uploadDir, { recursive: true });
+            const imageBuffer = Buffer.from(await image.arrayBuffer());
+            await fs.writeFile(path.join(uploadDir, id), imageBuffer);
+            
+            updateData.imageType = image.type;
+            updateData.imageUrl = `/api/parts/${id}/image?v=${version}`;
+        }
+
+        const part = await prisma.part.update({
+            where: { id },
+            data: updateData
         });
 
         if (stock > oldStock) {
@@ -265,6 +286,18 @@ export async function deletePart(id: string) {
         await prisma.stockLevel.deleteMany({
             where: { partId: id }
         });
+
+        // Delete files from disk if they exist
+        try {
+            await fs.unlink(path.join(process.cwd(), "public", "uploads", "images", id));
+        } catch (e) {
+            // Ignore if file doesn't exist
+        }
+        try {
+            await fs.unlink(path.join(process.cwd(), "public", "uploads", "datasheets", id));
+        } catch (e) {
+            // Ignore if file doesn't exist
+        }
 
         // Prisma handles BOMItem partId SetNull via schema on delete
 
