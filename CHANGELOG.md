@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.8.1] - 2026-05-22
+
+### Fixed
+- **Resilient Media Lookup**: Implemented a highly robust 4-level resolution fallback chain in both image and datasheet routes to support standard, extension-based, and legacy timestamp-prefixed filenames.
+- **SQL Restore Bug**: Fixed a database raw SQL update issue in `autoMigrateRestoredBlobs` that wiped out unselected media urls during backup restoration.
+
+## [1.8.0] - 2026-05-22
+
+### Added
+- **Filesystem Storage Migration**: Refactored database BLOB fields back to direct host filesystem storage under `./public/uploads`, reducing database bloat and query latencies.
+- **Unified Backup/Restore**: Implemented unified base64 compressed `.tar.gz` archiving that bundles the SQL database dump along with full host filesystem media directory structure.
+
 ## [1.7.1] - 2026-05-03
 
 ### Added

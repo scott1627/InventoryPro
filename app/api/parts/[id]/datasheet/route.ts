@@ -9,26 +9,69 @@ export async function GET(
     try {
         const part = await prisma.part.findUnique({
             where: { id: params.id },
-            select: { datasheetType: true }
+            select: { datasheetType: true, datasheetUrl: true }
         });
 
         if (!part) {
             return new Response("Part Not Found", { status: 404 });
         }
 
-        const filePath = path.join(process.cwd(), "public", "uploads", "datasheets", params.id);
+        const dirPath = path.join(process.cwd(), "public", "uploads", "datasheets");
+        let filePath = path.join(dirPath, params.id);
+        let fileBuffer: Buffer | null = null;
 
+        // 1. Try reading the standard file path (named exactly as part.id)
         try {
-            const buffer = await fs.readFile(filePath);
-            return new Response(buffer, {
-                headers: {
-                    "Content-Type": part.datasheetType || "application/pdf",
-                    "Cache-Control": "public, max-age=31536000, immutable"
-                }
-            });
+            fileBuffer = await fs.readFile(filePath);
         } catch (e) {
+            // 2. Try matching any file starting with part.id (e.g. part.id.pdf)
+            try {
+                const files = await fs.readdir(dirPath).catch(() => []);
+                const matchedFile = files.find(f => f.startsWith(params.id));
+                if (matchedFile) {
+                    filePath = path.join(dirPath, matchedFile);
+                    fileBuffer = await fs.readFile(filePath);
+                }
+            } catch (err) {}
+        }
+
+        // 3. Try legacy URL resolution from database
+        if (!fileBuffer && part.datasheetUrl) {
+            try {
+                const filename = path.basename(part.datasheetUrl.split("?")[0]);
+                if (filename && filename !== params.id) {
+                    const legacyPath = path.join(dirPath, filename);
+                    fileBuffer = await fs.readFile(legacyPath);
+                }
+            } catch (err) {}
+        }
+
+        // 4. Try matching using version timestamp prefix (e.g. TIMESTAMP-filename.pdf)
+        if (!fileBuffer) {
+            try {
+                const url = new URL(request.url);
+                const v = url.searchParams.get("v");
+                if (v && /^\d+$/.test(v)) {
+                    const files = await fs.readdir(dirPath).catch(() => []);
+                    const matchedFile = files.find(f => f.startsWith(v));
+                    if (matchedFile) {
+                        filePath = path.join(dirPath, matchedFile);
+                        fileBuffer = await fs.readFile(filePath);
+                    }
+                }
+            } catch (err) {}
+        }
+
+        if (!fileBuffer) {
             return new Response("Datasheet File Not Found", { status: 404 });
         }
+
+        return new Response(fileBuffer as any, {
+            headers: {
+                "Content-Type": part.datasheetType || "application/pdf",
+                "Cache-Control": "public, max-age=31536000, immutable"
+            }
+        });
     } catch (error: any) {
         console.error("Datasheet API Error:", error);
         return new Response(error.message, { status: 500 });

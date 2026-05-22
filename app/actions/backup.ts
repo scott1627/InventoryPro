@@ -56,12 +56,26 @@ async function autoMigrateRestoredBlobs() {
             }
 
             if (updated) {
-                await prisma.$executeRaw`
-                    UPDATE "Part"
-                    SET "imageUrl" = ${updateData.imageUrl || null},
-                        "datasheetUrl" = ${updateData.datasheetUrl || null}
-                    WHERE "id" = ${part.id}
-                `;
+                if (updateData.imageUrl !== undefined && updateData.datasheetUrl !== undefined) {
+                    await prisma.$executeRaw`
+                        UPDATE "Part"
+                        SET "imageUrl" = ${updateData.imageUrl},
+                            "datasheetUrl" = ${updateData.datasheetUrl}
+                        WHERE "id" = ${part.id}
+                    `;
+                } else if (updateData.imageUrl !== undefined) {
+                    await prisma.$executeRaw`
+                        UPDATE "Part"
+                        SET "imageUrl" = ${updateData.imageUrl}
+                        WHERE "id" = ${part.id}
+                    `;
+                } else if (updateData.datasheetUrl !== undefined) {
+                    await prisma.$executeRaw`
+                        UPDATE "Part"
+                        SET "datasheetUrl" = ${updateData.datasheetUrl}
+                        WHERE "id" = ${part.id}
+                    `;
+                }
             }
         }
 
