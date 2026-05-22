@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.3] - 2026-05-22
+
+### Fixed
+- **Native Upload Streaming**: Removed memory-blocking client-side FileReader base64 encoding. Replaced it with native, multi-part binary streaming via standard `FormData` uploads to Server Actions. This resolves browser out-of-memory issues when uploading large compressed database and media archives.
+
 ## [1.8.2] - 2026-05-22
 
 ### Fixed

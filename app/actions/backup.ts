@@ -164,12 +164,18 @@ export async function getDatabaseBackup() {
  * Supports both new compressed .tar.gz backups and legacy .sql backups (with auto-migration).
  * WARNING: This drops the existing 'public' schema before restoring.
  */
-export async function restoreDatabase(base64Content: string, filename: string) {
+export async function restoreDatabase(formData: FormData) {
     const session = await getServerAuthSession();
     if (!session || session.user.role !== "ADMIN") {
         return { success: false, error: "Unauthorized" };
     }
 
+    const file = formData.get("file") as File;
+    if (!file) {
+        return { success: false, error: "No backup file uploaded." };
+    }
+
+    const filename = file.name;
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) return { success: false, error: "DATABASE_URL environment variable is missing." };
 
@@ -180,7 +186,8 @@ export async function restoreDatabase(base64Content: string, filename: string) {
 
     try {
         console.log(`Restore: Writing uploaded backup file to ${tempFile}...`);
-        const buffer = Buffer.from(base64Content, "base64");
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
         await fs.writeFile(tempFile, buffer);
 
         // 1. Terminate other connections to inventory_db

@@ -61,27 +61,12 @@ export default function BackupPage() {
         setMessage(null);
         try {
             console.log("Restore: Starting restore process for file:", selectedFile.name);
-            setMessage({ text: "Reading file...", type: "success" });
-            
-            const base64Content = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    console.log("Restore: FileReader onload triggered");
-                    const result = e.target?.result as string;
-                    const base64 = result.split(",")[1];
-                    resolve(base64);
-                };
-                reader.onerror = (err) => {
-                    console.error("Restore: FileReader error", err);
-                    reject(new Error("Failed to read the backup file."));
-                };
-                reader.readAsDataURL(selectedFile);
-            });
-
-            console.log("Restore: File read successfully, base64 length:", base64Content.length);
             setMessage({ text: "Uploading and restoring... (This may take a minute)", type: "success" });
 
-            const res = await restoreDatabase(base64Content, selectedFile.name);
+            const formData = new FormData();
+            formData.append("file", selectedFile);
+
+            const res = await restoreDatabase(formData);
             console.log("Restore: Server action response received:", res);
             if (res.success) {
                 setMessage({ text: "System restored successfully! Refreshing...", type: "success" });
