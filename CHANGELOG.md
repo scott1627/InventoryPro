@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.2] - 2026-05-22
+
+### Fixed
+- **Restore Payload Limit**: Increased Next.js Server Action body limit configuration from 10MB to 200MB to fully support large compressed data + media archive uploads.
+
 ## [1.8.1] - 2026-05-22
 
 ### Fixed
