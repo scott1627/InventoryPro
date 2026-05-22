@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.5] - 2026-05-22
+
+### Fixed
+- **Prisma Connection Re-initialization**: Added an explicit `prisma.$disconnect()` flush inside the restoration action post-success. This cleanly drops terminated/dead Postgres sockets and forces Prisma client to initialize a fresh, healthy connection pool on layout refresh, resolving Server-Side Exception (P1017) crashes.
+
 ## [1.8.4] - 2026-05-22
 
 ### Fixed

@@ -266,6 +266,9 @@ export async function restoreDatabase(formData: FormData) {
             }
         }
 
+        console.log("Restore: Disconnecting Prisma client to flush dead socket connection pool...");
+        await prisma.$disconnect().catch(() => {});
+
         console.log("Restore process completed successfully.");
         return { success: true };
 
