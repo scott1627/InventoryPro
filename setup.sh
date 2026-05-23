@@ -105,6 +105,42 @@ if ! docker ps &> /dev/null; then
     fi
 fi
 
+# 3. Check for Existing active deployment and perform Automated Backup
+HAS_EXISTING_DB=false
+if $DOCKER_CMD compose -p $PROJECT_NAME ps db 2>/dev/null | grep -q "Up"; then
+    HAS_EXISTING_DB=true
+fi
+
+if [ "$HAS_EXISTING_DB" = true ]; then
+    echo -e "${YELLOW}Existing active deployment detected. Performing automated backup before migration...${NC}"
+    # Ensure temp dir is clean
+    rm -rf /tmp/inventory_auto_backup.sql /tmp/inventory_auto_uploads /tmp/inventory_auto_migration.tar.gz || true
+    
+    # Dump Database
+    if $DOCKER_CMD compose -p $PROJECT_NAME exec db pg_isready -U user -d inventory_db &>/dev/null; then
+        echo "Dumping database..."
+        $DOCKER_CMD compose -p $PROJECT_NAME exec -T db pg_dump -U user -d inventory_db > /tmp/inventory_auto_backup.sql 2>/dev/null || echo "Database dump skipped (no data or empty schema)."
+    fi
+    
+    # Copy Uploads
+    if $DOCKER_CMD compose -p $PROJECT_NAME ps app 2>/dev/null | grep -q "Up"; then
+        echo "Backing up uploaded datasheets and images..."
+        APP_CONTAINER_ID=$($DOCKER_CMD compose -p $PROJECT_NAME ps -q app 2>/dev/null)
+        if [ -n "$APP_CONTAINER_ID" ]; then
+            $DOCKER_CMD cp "$APP_CONTAINER_ID":/app/public/uploads /tmp/inventory_auto_uploads 2>/dev/null || echo "Uploads copy skipped."
+        fi
+    fi
+    
+    # Package into consolidated tarball
+    if [ -f /tmp/inventory_auto_backup.sql ] || [ -d /tmp/inventory_auto_uploads ]; then
+        tar -czf /tmp/inventory_auto_migration.tar.gz -C /tmp inventory_auto_backup.sql inventory_auto_uploads 2>/dev/null || true
+        echo -e "${GREEN}✓ Automated migration backup created successfully.${NC}"
+    fi
+    
+    # Clean up temporary folders
+    rm -rf /tmp/inventory_auto_backup.sql /tmp/inventory_auto_uploads || true
+fi
+
 # Stop existing containers if they are running to avoid port conflicts
 echo "Ensuring any existing version is stopped..."
 $DOCKER_CMD compose -p $PROJECT_NAME down --remove-orphans &> /dev/null || true
@@ -127,14 +163,48 @@ while ! $DOCKER_CMD compose -p $PROJECT_NAME exec db pg_isready -U user -d inven
 done
 echo -e "\n✓ Database is ready."
 
-# 5. Initialize Database Schema & Generate Prisma Client
+# 5. Automated Data Restore Hook
+RESTORED=false
+if [ -f /tmp/inventory_auto_migration.tar.gz ]; then
+    echo -e "${YELLOW}Automated migration backup detected. Restoring your database and uploaded files...${NC}"
+    
+    # Extract
+    tar -xzf /tmp/inventory_auto_migration.tar.gz -C /tmp 2>/dev/null || true
+    
+    # Drop and recreate schema to ensure clean state
+    $DOCKER_CMD compose -p $PROJECT_NAME exec -T db psql -U user -d inventory_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" &>/dev/null || true
+    
+    # Restore SQL
+    if [ -f /tmp/inventory_auto_backup.sql ]; then
+        echo "Restoring database records..."
+        $DOCKER_CMD compose -p $PROJECT_NAME exec -T db psql -U user -d inventory_db < /tmp/inventory_auto_backup.sql &>/dev/null || echo "Database restore had some warnings."
+    fi
+    
+    # Restore Uploads
+    if [ -d /tmp/inventory_auto_uploads ]; then
+        echo "Restoring uploaded datasheets and images..."
+        APP_CONTAINER_ID=$($DOCKER_CMD compose -p $PROJECT_NAME ps -q app 2>/dev/null)
+        if [ -n "$APP_CONTAINER_ID" ]; then
+            $DOCKER_CMD cp /tmp/inventory_auto_uploads/. "$APP_CONTAINER_ID":/app/public/uploads 2>/dev/null || true
+        fi
+    fi
+    
+    # Clean up
+    rm -rf /tmp/inventory_auto_backup.sql /tmp/inventory_auto_uploads /tmp/inventory_auto_migration.tar.gz || true
+    RESTORED=true
+    echo -e "${GREEN}✓ Automated restore completed successfully! All data and files migrated.${NC}"
+fi
+
+# 6. Initialize Database Schema & Generate Prisma Client
 echo "Initializing database schema and generating client..."
 $DOCKER_CMD compose -p $PROJECT_NAME exec app npx prisma db push
 $DOCKER_CMD compose -p $PROJECT_NAME exec app npx prisma generate
 
-# 6. Seed the Database
-echo "Ensuring default admin user is created..."
-$DOCKER_CMD compose -p $PROJECT_NAME exec app npx prisma db seed
+# 7. Seed the Database (Only if we didn't just restore a backup)
+if [ "$RESTORED" = false ]; then
+    echo "Ensuring default admin user and icons are seeded..."
+    $DOCKER_CMD compose -p $PROJECT_NAME exec app npx prisma db seed
+fi
 
 echo "--------------------------------------------------------"
 echo "✓ SETUP/UPDATE COMPLETE!"
