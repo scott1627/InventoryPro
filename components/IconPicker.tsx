@@ -81,11 +81,11 @@ export default function IconPicker({ value, onChange, className }: IconPickerPro
             >
                 <div className="flex items-center gap-3">
                     {value ? (
-                        <div className="w-6 h-6 rounded flex items-center justify-center overflow-hidden">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden bg-white p-1 shadow-inner">
                             <img src={`/api/icons/${value}`} alt="Icon" className="w-full h-full object-contain" />
                         </div>
                     ) : (
-                        <div className="w-6 h-6 rounded bg-secondary flex items-center justify-center border border-dashed border-border text-muted-foreground/50 text-xs">?</div>
+                        <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center border border-dashed border-border text-muted-foreground/50 text-xs shrink-0">?</div>
                     )}
                     <span>{selectedIcon ? selectedIcon.name : "Select an icon..."}</span>
                 </div>
@@ -122,10 +122,10 @@ export default function IconPicker({ value, onChange, className }: IconPickerPro
                                                     setIsOpen(false);
                                                 }}
                                                 className={cn(
-                                                    "w-full aspect-square relative flex items-center justify-center rounded-xl border transition-all p-2",
+                                                    "w-full aspect-square relative flex items-center justify-center rounded-xl border transition-all p-2 bg-white hover:bg-white/95",
                                                     value === icon.id 
-                                                        ? "border-primary ring-2 ring-primary/20 bg-primary/5" 
-                                                        : "border-border/50 hover:border-primary/50 hover:bg-secondary/50"
+                                                        ? "border-primary ring-2 ring-primary/20" 
+                                                        : "border-border/50 hover:border-primary/50"
                                                 )}
                                             >
                                                 <img src={`/api/icons/${icon.id}`} alt={icon.name} className="w-full h-full object-contain" />
