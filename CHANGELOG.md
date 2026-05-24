@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.8.9] - 2026-05-24
+
+### Added
+- **Client-Side Image Auto-Compression & Downscaling**: Added browser-native image compression using HTML5 Canvas. Newly uploaded part photos are automatically resized to fit within 1000x1000 pixels and converted to optimized JPEG format at 80% quality *before* transmitting over the network. This shrinks typical part photos from ~1.5MB down to ~100KB (a 90%+ decrease), saving substantial storage space and network transfer times.
+- **1GB Backup and Restore Limit**: Increased Next.js Server Action body size limit from `200mb` to `1gb` to support massive catalog backups and restorations.
+
+## [1.8.8] - 2026-05-23
+
+### Added
+- **Automated Migration Hook**: Built a zero-downtime automated backup and restore hook directly into `setup.sh`. Updating the codebase automatically dumps the existing Postgres records, packages current media uploads into a temporary migration package, compiles the new version, restores all database records/media files, and re-validates the database structure.
+- **Docker Compose Namespace Enforcement**: Configured a persistent `name: inventory-pro` attribute across compose settings to isolate volumes globally regardless of directory moves.
+
+## [1.8.7] - 2026-05-22
+
+### Added
+- **Named Docker Volumes Persistence**: Migrated the uploads directory (`/public/uploads`) to persistent named Docker volumes (`uploads_data`), decoupling user uploads from the local codebase directory and resolving datasheet loss on codebase updates.
+- **Backup Script Parity**: Adapted `scripts/backup.sh` to extract uploads via `docker cp` directly from the named volume namespace.
+
 ## [1.8.6] - 2026-05-22
 
 ### Fixed

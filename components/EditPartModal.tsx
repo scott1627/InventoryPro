@@ -7,6 +7,7 @@ import { updatePart, deletePart } from "../app/actions/parts";
 import CategoryPicker from "./CategoryPicker";
 import LocationPicker from "./LocationPicker";
 import IconPicker from "./IconPicker";
+import { compressImage } from "../lib/image";
 
 interface Part {
     id: string;
@@ -120,6 +121,11 @@ export default function EditPartModal({ isOpen, onClose, part, categories, locat
                     onSubmit={async (e) => {
                         e.preventDefault();
                         const formData = new FormData(e.currentTarget);
+                        const imageFile = formData.get("image") as File;
+                        if (imageFile && imageFile.size > 0) {
+                            const compressed = await compressImage(imageFile);
+                            formData.set("image", compressed);
+                        }
                         await handleSubmit(formData);
                     }}
                 >
