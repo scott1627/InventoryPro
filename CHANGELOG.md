@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.9.1] - 2026-05-25
+
+### Fixed
+- **Automated Upgrade Seeding**: Fixed a bug in `setup.sh` where database seeding was skipped on upgraded environments when a database restoration was detected. Seeding is now always run during updates. Since the database seeder checks for existing icons and uses standard `upsert` queries, it is fully idempotent and safely registers new system icons without affecting any existing product catalog entries.
+
+## [1.9.0] - 2026-05-24
+
+### Added
+- **High-Contrast Icon Visibility**: Redesigned the icon grid cells and selectors inside `IconPicker.tsx` to mount SVGs inside isolated white background contrast boxes (`bg-white` and padding), making dark technical schematic icons legible regardless of browser dark mode active theme settings.
+- **Seeded Switch, Light, and Pin Connector**: Added custom-designed schematic SVGs for Switch (toggle lever), Light (indicator lamp circle with X), and Pin Connector (electronic pin headers block) to the baseline seed package.
+
 ## [1.8.9] - 2026-05-24
 
 ### Added

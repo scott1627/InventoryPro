@@ -200,11 +200,9 @@ echo "Initializing database schema and generating client..."
 $DOCKER_CMD compose -p $PROJECT_NAME exec app npx prisma db push
 $DOCKER_CMD compose -p $PROJECT_NAME exec app npx prisma generate
 
-# 7. Seed the Database (Only if we didn't just restore a backup)
-if [ "$RESTORED" = false ]; then
-    echo "Ensuring default admin user and icons are seeded..."
-    $DOCKER_CMD compose -p $PROJECT_NAME exec app npx prisma db seed
-fi
+# 7. Seed the Database (Idempotent seed checks ensure this is safe for upgrades)
+echo "Ensuring default admin user and baseline icons are seeded..."
+$DOCKER_CMD compose -p $PROJECT_NAME exec app npx prisma db seed
 
 echo "--------------------------------------------------------"
 echo "✓ SETUP/UPDATE COMPLETE!"
