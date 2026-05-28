@@ -410,6 +410,8 @@ export default function CategoryList({ initialCategories, allCategories, allLoca
                                                 <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
                                                     {part.iconId ? (
                                                         <img src={`/api/icons/${part.iconId}`} alt="Icon" className="h-full w-full object-contain p-1 bg-white" />
+                                                    ) : part.imageUrl ? (
+                                                        <img src={`/api/parts/${part.id}/image`} alt={part.name} className="h-full w-full object-cover" />
                                                     ) : (
                                                         <Hash size={18} className="text-muted-foreground" />
                                                     )}

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.2] - 2026-05-28
+
+### Added
+- **Transformer and PCB Schematic Icons**: Added custom-designed vector SVGs for a dual-winding transformer (coils and core lines) and a PCB (circuit board rectangular shape with layout tracks and circular solder pads) to the baseline seed package.
+- **Auto Part Photo Thumbnail Fallback**: Implemented a three-stage fallback rendering logic in `PartsList.tsx`, `CategoryList.tsx`, and `LocationList.tsx` that automatically assigns a part's uploaded photo as its row cell thumbnail (cropped to fit) if no schematic icon is manually selected, and falls back to a generic hash placeholder only if both are missing.
+
 ## [1.9.1] - 2026-05-25
 
 ### Fixed
