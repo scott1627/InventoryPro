@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.3] - 2026-06-04
+
+### Added
+- **Zebra Scanner REST API**: Created secure endpoints `/api/scanner/part` (UPC-based part lookup) and `/api/scanner/adjust` (stock level updates) supporting HTTP Basic Authentication.
+- **Middleware Integration**: Excluded scanner-specific routes from standard NextAuth session redirection to allow custom stateless client authentication.
+
 ## [1.9.2] - 2026-05-28
 
 ### Added
