@@ -29,6 +29,7 @@ model Part {
   minStock            Int      @default(0)
   lowStockAlertEnabled Boolean @default(false)
   upc                 String?  @unique
+  pulls               JobPartPull[]
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -96,6 +97,7 @@ model Job {
   description String?
   status      JobStatus @default(DRAFT)
   boms        JobBOM[]
+  pulls       JobPartPull[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
@@ -140,4 +142,17 @@ model User {
 enum Role {
   USER
   ADMIN
+}
+
+model JobPartPull {
+  id        String   @id @default(cuid())
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  partId    String
+  part      Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(0)
+
+  @@unique([jobId, partId])
+  @@index([jobId])
+  @@index([partId])
 }

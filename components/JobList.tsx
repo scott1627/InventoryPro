@@ -23,6 +23,7 @@ interface Job {
     description: string | null;
     status: "DRAFT" | "IN_PROGRESS" | "COMPLETED";
     boms: JobBOM[];
+    pulls?: { quantity: number }[];
 }
 
 interface JobListProps {
@@ -182,22 +183,36 @@ export default function JobList({ initialJobs, availableBOMs }: JobListProps) {
                             </div>
                             
                             {selectedJob.status !== "COMPLETED" && (
-                                <div className="flex items-center gap-2">
-                                    <select 
-                                        value={selectedJob.status} 
-                                        onChange={e => handleUpdateStatus(selectedJob.id, e.target.value as "DRAFT" | "IN_PROGRESS")}
-                                        className="px-3 py-1.5 bg-secondary text-sm rounded-lg border border-border"
-                                    >
-                                        <option value="DRAFT">Draft</option>
-                                        <option value="IN_PROGRESS">In Progress</option>
-                                    </select>
-                                    
-                                    <button 
-                                        onClick={() => handleCompleteJob(selectedJob.id)} 
-                                        className="flex items-center gap-2 px-3 py-1.5 bg-green-500/20 text-green-500 rounded-lg text-sm font-bold hover:bg-green-500/30 transition-colors"
-                                    >
-                                        <CheckCircle size={16} /> Complete & Deduct
-                                    </button>
+                                <div className="flex flex-col items-end gap-1">
+                                    <div className="flex items-center gap-2">
+                                        <select 
+                                            value={selectedJob.status} 
+                                            onChange={e => handleUpdateStatus(selectedJob.id, e.target.value as "DRAFT" | "IN_PROGRESS")}
+                                            className="px-3 py-1.5 bg-secondary text-sm rounded-lg border border-border"
+                                            disabled={!!(selectedJob.pulls && selectedJob.pulls.length > 0)}
+                                        >
+                                            <option value="DRAFT">Draft</option>
+                                            <option value="IN_PROGRESS">In Progress</option>
+                                        </select>
+                                        
+                                        <button 
+                                            onClick={() => handleCompleteJob(selectedJob.id)} 
+                                            disabled={!!(selectedJob.pulls && selectedJob.pulls.length > 0)}
+                                            className={cn(
+                                                "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors",
+                                                selectedJob.pulls && selectedJob.pulls.length > 0
+                                                    ? "bg-secondary text-muted-foreground opacity-50 cursor-not-allowed border border-border"
+                                                    : "bg-green-500/20 text-green-500 hover:bg-green-500/30"
+                                            )}
+                                        >
+                                            <CheckCircle size={16} /> Complete & Deduct
+                                        </button>
+                                    </div>
+                                    {selectedJob.pulls && selectedJob.pulls.length > 0 && (
+                                        <span className="text-[10px] text-amber-500 font-medium">
+                                            Picking in progress on Android scanner. Complete via mobile client.
+                                        </span>
+                                    )}
                                 </div>
                             )}
                         </div>

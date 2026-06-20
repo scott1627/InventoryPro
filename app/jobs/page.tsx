@@ -8,6 +8,11 @@ export default async function JobsPage() {
                 include: {
                     bom: true
                 }
+            },
+            pulls: {
+                select: {
+                    quantity: true
+                }
             }
         },
         orderBy: {

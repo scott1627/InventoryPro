@@ -12,22 +12,26 @@ export async function GET(request: NextRequest) {
         );
     }
 
-    // 2. Extract UPC/ID param
+    // 2. Extract query parameter
     const { searchParams } = new URL(request.url);
-    const upc = searchParams.get("upc");
-    const id = searchParams.get("id");
+    const query = searchParams.get("q");
 
-    if (!upc && !id) {
+    if (!query) {
         return new NextResponse(
-            JSON.stringify({ error: "UPC or ID query parameter is required" }),
-            { status: 400, headers: { "Content-Type": "application/json" } }
+            JSON.stringify([]),
+            { status: 200, headers: { "Content-Type": "application/json" } }
         );
     }
 
     try {
-        // 3. Query Part from database
-        const part = await prisma.part.findFirst({
-            where: upc ? { upc } : { id: id! },
+        // 3. Query Parts from database matching name or description
+        const parts = await prisma.part.findMany({
+            where: {
+                OR: [
+                    { name: { contains: query, mode: "insensitive" } },
+                    { description: { contains: query, mode: "insensitive" } }
+                ]
+            },
             include: {
                 category: {
                     select: { name: true }
@@ -45,24 +49,19 @@ export async function GET(request: NextRequest) {
                     orderBy: { id: "desc" },
                     take: 1
                 }
-            }
+            },
+            take: 50 // Limit to top 50 results
         });
 
-        if (!part) {
-            return new NextResponse(
-                JSON.stringify({ error: "Part not found" }),
-                { status: 404, headers: { "Content-Type": "application/json" } }
-            );
-        }
+        // 4. Format search results
+        const results = parts.map(part => {
+            const locationName = part.storageLocation.parent
+                ? `${part.storageLocation.parent.name} / ${part.storageLocation.name}`
+                : part.storageLocation.name;
+            
+            const locationColor = part.storageLocation.color || part.storageLocation.parent?.color || "#4b5563";
 
-        const locationName = part.storageLocation.parent
-            ? `${part.storageLocation.parent.name} / ${part.storageLocation.name}`
-            : part.storageLocation.name;
-        
-        const locationColor = part.storageLocation.color || part.storageLocation.parent?.color || "#4b5563";
-
-        return new NextResponse(
-            JSON.stringify({
+            return {
                 id: part.id,
                 name: part.name,
                 description: part.description,
@@ -71,11 +70,15 @@ export async function GET(request: NextRequest) {
                 location: locationName,
                 locationColor: locationColor,
                 stock: part.stockLevels[0]?.quantity ?? 0
-            }),
+            };
+        });
+
+        return new NextResponse(
+            JSON.stringify(results),
             { status: 200, headers: { "Content-Type": "application/json" } }
         );
     } catch (error) {
-        console.error("Error looking up part:", error);
+        console.error("Error searching parts:", error);
         return new NextResponse(
             JSON.stringify({ error: "Internal Server Error" }),
             { status: 500, headers: { "Content-Type": "application/json" } }
