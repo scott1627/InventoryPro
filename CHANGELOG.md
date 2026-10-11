@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.4] - 2026-10-11
+
+### Added
+- **Zebra Scanner Photo Upload REST API**: Implemented `/api/scanner/part/photo` supporting HTTP Basic Authentication for direct camera photo uploads from mobile scanner clients without manual PC transfer.
+- **Scanner Photo URL Resolution**: Added `imageUrl` to `/api/scanner/part` and `/api/scanner/search` payloads, and excluded `/api/parts` from session redirection in `middleware.ts`.
+
 ## [1.9.3] - 2026-06-04
 
 ### Added

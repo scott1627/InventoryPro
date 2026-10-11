@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">IP Scanner</string>
+    <string name="settings_title">Connection Settings</string>
+    <string name="server_url_hint">http://192.168.1.100:3000</string>
+    <string name="username_hint">admin</string>
+    <string name="password_hint">••••••••</string>
+</resources>

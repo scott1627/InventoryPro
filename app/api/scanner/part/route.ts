@@ -70,7 +70,8 @@ export async function GET(request: NextRequest) {
                 category: part.category.name,
                 location: locationName,
                 locationColor: locationColor,
-                stock: part.stockLevels[0]?.quantity ?? 0
+                stock: part.stockLevels[0]?.quantity ?? 0,
+                imageUrl: part.imageUrl
             }),
             { status: 200, headers: { "Content-Type": "application/json" } }
         );

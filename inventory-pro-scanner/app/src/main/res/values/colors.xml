@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- Premium Dark Theme Palette -->
+    <color name="background">#FF09090B</color> <!-- Very Dark Grey -->
+    <color name="surface">#FF1F1F23</color> <!-- Dark Grey Surface -->
+    <color name="primary">#FF7C3AED</color> <!-- Purple Primary -->
+    <color name="primary_variant">#FF6D28D9</color> <!-- Darker Purple -->
+    <color name="on_primary">#FFFFFFFF</color>
+    
+    <color name="text_primary">#FFF8FAFC</color>
+    <color name="text_secondary">#FF94A3B8</color>
+    <color name="border">#FF27272A</color>
+    
+    <!-- Action Colors -->
+    <color name="green_add">#FF10B981</color> <!-- Emerald 500 -->
+    <color name="green_add_dark">#047857</color>
+    <color name="amber_deduct">#FFF59E0B</color> <!-- Amber 500 -->
+    <color name="amber_deduct_dark">#B45309</color>
+</resources>
