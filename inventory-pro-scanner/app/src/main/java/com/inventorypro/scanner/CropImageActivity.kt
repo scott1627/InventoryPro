@@ -4,16 +4,13 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
-import android.graphics.RectF
 import android.media.ExifInterface
 import android.os.Bundle
-import android.view.ViewTreeObserver
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.inventorypro.scanner.databinding.ActivityCropImageBinding
 import java.io.File
 import java.io.FileOutputStream
-import java.io.IOException
 
 class CropImageActivity : AppCompatActivity() {
 
@@ -25,9 +22,7 @@ class CropImageActivity : AppCompatActivity() {
     }
 
     private lateinit var binding: ActivityCropImageBinding
-    private var currentBitmap: Bitmap? = null
     private var sourceImagePath: String = ""
-    private var displayedImageBounds = RectF()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,10 +44,10 @@ class CropImageActivity : AppCompatActivity() {
             return
         }
 
-        // Load source image
-        loadAndOrientBitmap(sourceImagePath)
+        // Fast, memory-optimized image load
+        loadOptimizedBitmap(sourceImagePath)
 
-        // Setup listeners
+        // Setup button listeners
         binding.btnCropBack.setOnClickListener {
             setResult(RESULT_CANCELED)
             finish()
@@ -65,23 +60,47 @@ class CropImageActivity : AppCompatActivity() {
         }
 
         binding.btnCropRotate.setOnClickListener {
-            rotateBitmapClockwise()
+            binding.cropView.rotateClockwise()
         }
 
         binding.btnUseFullPhoto.setOnClickListener {
-            saveAndFinish(isCropped = false)
+            saveBitmapAndFinish(binding.cropView.getSourceBitmap())
         }
 
         binding.btnConfirmCrop.setOnClickListener {
-            saveAndFinish(isCropped = true)
+            val cropped = binding.cropView.getCroppedBitmap()
+            if (cropped != null) {
+                saveBitmapAndFinish(cropped)
+            } else {
+                saveBitmapAndFinish(binding.cropView.getSourceBitmap())
+            }
         }
     }
 
-    private fun loadAndOrientBitmap(path: String) {
+    private fun loadOptimizedBitmap(path: String) {
         try {
-            var bitmap = BitmapFactory.decodeFile(path) ?: return
-            
-            // Check EXIF orientation
+            // 1. Decode bounds only to calculate efficient sample size
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(path, options)
+            val origW = options.outWidth
+            val origH = options.outHeight
+
+            // Target max dimension ~1400px (fast 60fps rendering without saturating mobile RAM)
+            val targetDim = 1400
+            var inSampleSize = 1
+            while ((origW / inSampleSize) > targetDim * 1.4 || (origH / inSampleSize) > targetDim * 1.4) {
+                inSampleSize *= 2
+            }
+
+            options.inJustDecodeBounds = false
+            options.inSampleSize = inSampleSize
+            var bitmap = BitmapFactory.decodeFile(path, options) ?: run {
+                Toast.makeText(this, "Could not decode image", Toast.LENGTH_SHORT).show()
+                finish()
+                return
+            }
+
+            // 2. Check EXIF orientation
             try {
                 val exif = ExifInterface(path)
                 val orientation = exif.getAttributeInt(
@@ -105,94 +124,24 @@ class CropImageActivity : AppCompatActivity() {
                 e.printStackTrace()
             }
 
-            currentBitmap = bitmap
-            displayBitmap()
+            // 3. Set onto unified CropView
+            binding.cropView.setSourceBitmap(bitmap)
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(this, "Error loading image: ${e.message}", Toast.LENGTH_SHORT).show()
+            finish()
         }
     }
 
-    private fun displayBitmap() {
-        val bitmap = currentBitmap ?: return
-        binding.ivCropSource.setImageBitmap(bitmap)
-
-        // Wait for ImageView to be laid out to calculate exact fitCenter bounds
-        binding.ivCropSource.viewTreeObserver.addOnGlobalLayoutListener(
-            object : ViewTreeObserver.OnGlobalLayoutListener {
-                override fun onGlobalLayout() {
-                    binding.ivCropSource.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                    updateImageBounds()
-                }
-            }
-        )
-    }
-
-    private fun updateImageBounds() {
-        val bitmap = currentBitmap ?: return
-        val viewW = binding.ivCropSource.width.toFloat()
-        val viewH = binding.ivCropSource.height.toFloat()
-
-        if (viewW <= 0 || viewH <= 0) return
-
-        val bw = bitmap.width.toFloat()
-        val bh = bitmap.height.toFloat()
-
-        val scale = minOf(viewW / bw, viewH / bh)
-        val displayedW = bw * scale
-        val displayedH = bh * scale
-
-        val left = (viewW - displayedW) / 2f
-        val top = (viewH - displayedH) / 2f
-
-        displayedImageBounds.set(left, top, left + displayedW, top + displayedH)
-        binding.cropOverlayView.setImageBounds(displayedImageBounds)
-    }
-
-    private fun rotateBitmapClockwise() {
-        val bitmap = currentBitmap ?: return
-        val matrix = Matrix().apply { postRotate(90f) }
-        val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-        if (rotated != bitmap) {
-            bitmap.recycle()
+    private fun saveBitmapAndFinish(bitmap: Bitmap?) {
+        if (bitmap == null) {
+            finish()
+            return
         }
-        currentBitmap = rotated
-        binding.ivCropSource.setImageBitmap(rotated)
-        updateImageBounds()
-    }
-
-    private fun saveAndFinish(isCropped: Boolean) {
-        val bitmap = currentBitmap ?: return
         try {
             val outputFile = File(cacheDir, "crop_result_${System.currentTimeMillis()}.jpg")
-            
-            val finalBitmap = if (isCropped) {
-                val cropRect = binding.cropOverlayView.getCropRect()
-                val scale = minOf(
-                    displayedImageBounds.width() / bitmap.width.toFloat(),
-                    displayedImageBounds.height() / bitmap.height.toFloat()
-                )
-
-                val cropLeft = ((cropRect.left - displayedImageBounds.left) / scale).toInt().coerceIn(0, bitmap.width - 1)
-                val cropTop = ((cropRect.top - displayedImageBounds.top) / scale).toInt().coerceIn(0, bitmap.height - 1)
-                val cropWidth = (((cropRect.right - displayedImageBounds.left) / scale) - cropLeft).toInt()
-                    .coerceAtLeast(1)
-                    .coerceAtMost(bitmap.width - cropLeft)
-                val cropHeight = (((cropRect.bottom - displayedImageBounds.top) / scale) - cropTop).toInt()
-                    .coerceAtLeast(1)
-                    .coerceAtMost(bitmap.height - cropTop)
-
-                Bitmap.createBitmap(bitmap, cropLeft, cropTop, cropWidth, cropHeight)
-            } else {
-                bitmap
-            }
-
             FileOutputStream(outputFile).use { out ->
-                finalBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
-            }
-
-            if (isCropped && finalBitmap != bitmap) {
-                finalBitmap.recycle()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
             }
 
             val resultIntent = Intent().apply {
@@ -202,13 +151,7 @@ class CropImageActivity : AppCompatActivity() {
             finish()
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(this, "Failed to crop image: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Failed to save cropped image: ${e.message}", Toast.LENGTH_SHORT).show()
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        currentBitmap?.recycle()
-        currentBitmap = null
     }
 }

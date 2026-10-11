@@ -70,27 +70,13 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Image + Interactive Crop Canvas Area -->
-    <FrameLayout
-        android:id="@+id/canvasContainer"
+    <!-- Unified High-Performance Interactive Crop Canvas -->
+    <com.inventorypro.scanner.CropView
+        android:id="@+id/cropView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layout_constraintTop_toBottomOf="@id/cropTopBar"
-        app:layout_constraintBottom_toTopOf="@id/cropBottomBar">
-
-        <ImageView
-            android:id="@+id/ivCropSource"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:scaleType="fitCenter"
-            android:contentDescription="Source Photo" />
-
-        <com.inventorypro.scanner.CropOverlayView
-            android:id="@+id/cropOverlayView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-
-    </FrameLayout>
+        app:layout_constraintBottom_toTopOf="@id/cropBottomBar" />
 
     <!-- Bottom Actions Bar -->
     <androidx.constraintlayout.widget.ConstraintLayout
