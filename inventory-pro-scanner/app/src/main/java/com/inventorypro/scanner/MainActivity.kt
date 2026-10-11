@@ -61,12 +61,38 @@ class MainActivity : AppCompatActivity() {
     private lateinit var searchAdapter: SearchResultAdapter
     private lateinit var jobAdapter: JobAdapter
 
+    // Launcher for image cropping activity
+    private val cropImageLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val croppedPath = result.data?.getStringExtra(CropImageActivity.EXTRA_CROPPED_PATH)
+            if (!croppedPath.isNullOrEmpty() && File(croppedPath).exists()) {
+                uploadCapturedPhoto(File(croppedPath))
+            } else if (tempPhotoFile != null && tempPhotoFile!!.exists()) {
+                uploadCapturedPhoto(tempPhotoFile!!)
+            }
+        } else {
+            val retake = result.data?.getBooleanExtra(CropImageActivity.EXTRA_RETAKE, false) ?: false
+            if (retake) {
+                launchCameraCapture()
+            } else {
+                tempPhotoFile?.delete()
+                tempPhotoFile = null
+            }
+        }
+    }
+
     // Launcher for capturing photo directly via system camera without opening a file picker
     private val takePictureLauncher = registerForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
         if (success && tempPhotoFile != null && tempPhotoFile!!.exists()) {
-            uploadCapturedPhoto(tempPhotoFile!!)
+            val intent = Intent(this, CropImageActivity::class.java).apply {
+                putExtra(CropImageActivity.EXTRA_IMAGE_PATH, tempPhotoFile!!.absolutePath)
+                putExtra(CropImageActivity.EXTRA_PART_NAME, currentPartName ?: "")
+            }
+            cropImageLauncher.launch(intent)
         } else {
             tempPhotoFile?.delete()
             tempPhotoFile = null

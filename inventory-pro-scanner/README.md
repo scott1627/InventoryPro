@@ -75,6 +75,8 @@ When you launch the app for the first time, you will see a configuration prompt:
 
 * **Direct Camera Capture**: Scan any part (or select one from the Search tab), and tap **Take Photo** (or **Update Photo** or the thumbnail container).
 * **Seamless Workflow**: The camera opens immediately without prompting you to browse files or navigate the gallery.
-* **Auto-Optimization**: The app handles EXIF orientation rotation, resizes the photo to a lightweight web-friendly resolution (max 1200x1200px), compresses to optimized JPEG, and uploads it via the secure `/api/scanner/part/photo` endpoint.
-* **Instant Sync & Feedback**: Upon upload, the app immediately refreshes the preview thumbnail, plays a success tone, and updates the part's photo across the InventoryPro dashboard.
+* **Interactive Cropping & Rotation**: After snapping a picture, an interactive crop screen appears. You can drag the corner handles to tightly frame small electronic components or parts, rotate the image 90°, or tap "Full Image" to use the uncropped shot. A "Retake" button lets you quickly snap a replacement if needed.
+* **Auto-Optimization**: The app handles EXIF orientation rotation, resizes the cropped selection to a lightweight web-friendly resolution (max 1200x1200px), compresses to optimized JPEG, and uploads it via the secure `/api/scanner/part/photo` endpoint.
+* **Instant Sync & Feedback**: Upon upload, the app immediately refreshes the preview thumbnail in full color, plays a success tone, and updates the part's photo across the InventoryPro dashboard.
+
 
