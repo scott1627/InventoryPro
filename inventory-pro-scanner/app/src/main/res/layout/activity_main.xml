@@ -159,37 +159,57 @@
                         android:padding="10dp">
 
                         <!-- Photo Preview Container -->
-                        <FrameLayout
+                        <com.google.android.material.card.MaterialCardView
                             android:id="@+id/containerPhotoPreview"
                             android:layout_width="88dp"
                             android:layout_height="88dp"
-                            android:background="@drawable/input_background">
+                            app:cardCornerRadius="8dp"
+                            app:cardElevation="0dp"
+                            app:strokeWidth="1dp"
+                            app:strokeColor="@color/border"
+                            app:cardBackgroundColor="@color/background">
 
-                            <ImageView
-                                android:id="@+id/ivPartPhoto"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:scaleType="centerCrop"
-                                android:contentDescription="Part Photo"
-                                android:src="@drawable/ic_camera"
-                                android:padding="22dp"
-                                app:tint="@color/text_secondary" />
-
-                            <!-- Overlay while uploading -->
                             <FrameLayout
-                                android:id="@+id/layoutPhotoUploading"
                                 android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:background="#CC000000"
-                                android:visibility="gone">
+                                android:layout_height="match_parent">
 
-                                <ProgressBar
-                                    android:layout_width="32dp"
-                                    android:layout_height="32dp"
-                                    android:layout_gravity="center"
-                                    android:indeterminate="true" />
+                                <!-- Actual Part Photo Preview (Clean, un-tinted) -->
+                                <ImageView
+                                    android:id="@+id/ivPartPhoto"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:scaleType="centerCrop"
+                                    android:contentDescription="Part Photo"
+                                    android:visibility="gone" />
+
+                                <!-- Placeholder Camera Icon (Tinted) -->
+                                <ImageView
+                                    android:id="@+id/ivPhotoPlaceholder"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:padding="22dp"
+                                    android:scaleType="fitCenter"
+                                    android:contentDescription="No Photo"
+                                    android:src="@drawable/ic_camera"
+                                    app:tint="@color/text_secondary" />
+
+                                <!-- Overlay while uploading -->
+                                <FrameLayout
+                                    android:id="@+id/layoutPhotoUploading"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:background="#CC000000"
+                                    android:visibility="gone">
+
+                                    <ProgressBar
+                                        android:layout_width="32dp"
+                                        android:layout_height="32dp"
+                                        android:layout_gravity="center"
+                                        android:indeterminate="true" />
+                                </FrameLayout>
+
                             </FrameLayout>
-                        </FrameLayout>
+                        </com.google.android.material.card.MaterialCardView>
 
                         <!-- Photo Action / Info -->
                         <LinearLayout

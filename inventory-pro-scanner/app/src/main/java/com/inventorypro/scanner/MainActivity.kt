@@ -385,6 +385,8 @@ class MainActivity : AppCompatActivity() {
                             if (!currentPartImageUrl.isNullOrEmpty()) {
                                 binding.tvPhotoStatus.text = "Loading photo..."
                                 binding.btnCapturePhoto.text = "Update Photo"
+                                binding.ivPartPhoto.visibility = View.GONE
+                                binding.ivPhotoPlaceholder.visibility = View.VISIBLE
                                 loadPartPhotoFromServer(currentPartImageUrl!!)
                             } else {
                                 resetPartPhotoUI()
@@ -902,18 +904,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun displayPartPhoto(bitmap: Bitmap) {
-        binding.ivPartPhoto.setPadding(0, 0, 0, 0)
-        binding.ivPartPhoto.clearColorFilter()
         binding.ivPartPhoto.setImageBitmap(bitmap)
+        binding.ivPartPhoto.visibility = View.VISIBLE
+        binding.ivPhotoPlaceholder.visibility = View.GONE
         binding.btnCapturePhoto.text = "Update Photo"
         binding.tvPhotoStatus.text = "Photo saved"
     }
 
     private fun resetPartPhotoUI() {
-        val pad = (22 * resources.displayMetrics.density).toInt()
-        binding.ivPartPhoto.setPadding(pad, pad, pad, pad)
-        binding.ivPartPhoto.setImageResource(R.drawable.ic_camera)
-        binding.ivPartPhoto.setColorFilter(resources.getColor(R.color.text_secondary))
+        binding.ivPartPhoto.setImageDrawable(null)
+        binding.ivPartPhoto.visibility = View.GONE
+        binding.ivPhotoPlaceholder.visibility = View.VISIBLE
         binding.btnCapturePhoto.text = "Take Photo"
         binding.tvPhotoStatus.text = "No photo assigned"
         binding.layoutPhotoUploading.visibility = View.GONE
@@ -941,6 +942,8 @@ class MainActivity : AppCompatActivity() {
             override fun onFailure(call: okhttp3.Call, e: IOException) {
                 Handler(Looper.getMainLooper()).post {
                     binding.tvPhotoStatus.text = "No photo loaded"
+                    binding.ivPartPhoto.visibility = View.GONE
+                    binding.ivPhotoPlaceholder.visibility = View.VISIBLE
                 }
             }
 
@@ -954,13 +957,16 @@ class MainActivity : AppCompatActivity() {
                             Handler(Looper.getMainLooper()).post {
                                 displayPartPhoto(bitmap)
                             }
+                            return
                         }
                     }
                 } else {
                     response.close()
-                    Handler(Looper.getMainLooper()).post {
-                        binding.tvPhotoStatus.text = "No photo"
-                    }
+                }
+                Handler(Looper.getMainLooper()).post {
+                    binding.tvPhotoStatus.text = "No photo"
+                    binding.ivPartPhoto.visibility = View.GONE
+                    binding.ivPhotoPlaceholder.visibility = View.VISIBLE
                 }
             }
         })
