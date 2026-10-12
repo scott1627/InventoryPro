@@ -39,14 +39,17 @@ export async function GET(request: NextRequest) {
             });
         } else if (locationQuery) {
             const trimmed = locationQuery.trim();
-            const partsSplit = trimmed.split("/").map(s => s.trim());
+            const cleanQuery = trimmed.replace(/^(bin[:\s\-]+)/i, "").trim();
+            const partsSplit = cleanQuery.split("/").map(s => s.trim());
             const leafName = partsSplit[partsSplit.length - 1];
 
             storageLocation = await prisma.storageLocation.findFirst({
                 where: {
                     OR: [
+                        { name: { equals: cleanQuery, mode: "insensitive" } },
                         { name: { equals: leafName, mode: "insensitive" } },
-                        { name: { contains: leafName, mode: "insensitive" } }
+                        { name: { contains: leafName, mode: "insensitive" } },
+                        { name: { equals: trimmed, mode: "insensitive" } }
                     ]
                 },
                 include: {
@@ -59,6 +62,27 @@ export async function GET(request: NextRequest) {
                     }
                 }
             });
+
+            if (!storageLocation && partsSplit.length > 1) {
+                const parentName = partsSplit[0];
+                storageLocation = await prisma.storageLocation.findFirst({
+                    where: {
+                        name: { equals: leafName, mode: "insensitive" },
+                        parent: {
+                            name: { equals: parentName, mode: "insensitive" }
+                        }
+                    },
+                    include: {
+                        parent: true,
+                        parts: {
+                            include: {
+                                category: { select: { name: true } },
+                                stockLevels: { orderBy: { id: "desc" }, take: 1 }
+                            }
+                        }
+                    }
+                });
+            }
         }
 
         if (!storageLocation) {

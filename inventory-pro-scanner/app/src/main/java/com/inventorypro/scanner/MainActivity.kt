@@ -140,7 +140,7 @@ class MainActivity : AppCompatActivity() {
                     if (currentTabId == R.id.nav_scan) {
                         binding.tvScanStatus.text = "Scanned: $scanData ($scanType)"
                         binding.tvScanStatus.setTextColor(resources.getColor(R.color.primary))
-                        lookupPart(scanData)
+                        handleIncomingScan(scanData)
                     } else if (currentTabId == R.id.nav_search) {
                         binding.etSearchQuery.setText(scanData)
                         performSearch(scanData)
@@ -181,7 +181,7 @@ class MainActivity : AppCompatActivity() {
             val barcode = binding.etManualBarcode.text.toString().trim()
             if (barcode.isNotEmpty()) {
                 binding.tvScanStatus.text = "Manual Lookup: $barcode"
-                lookupPart(barcode)
+                handleIncomingScan(barcode)
             } else {
                 Toast.makeText(this, "Please enter a barcode", Toast.LENGTH_SHORT).show()
             }
@@ -214,7 +214,19 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.tvBinSharedBadge.setOnClickListener {
-            binding.btnPrintLabel.performClick()
+            val loc = currentPartLocation
+            if (!loc.isNullOrBlank()) {
+                lookupBin(loc)
+            } else {
+                binding.btnPrintLabel.performClick()
+            }
+        }
+
+        binding.tvPartLocation.setOnClickListener {
+            val loc = currentPartLocation
+            if (!loc.isNullOrBlank()) {
+                lookupBin(loc)
+            }
         }
 
         binding.btnPrintLabel.setOnClickListener {
@@ -532,7 +544,23 @@ class MainActivity : AppCompatActivity() {
         return Pair(url, Credentials.basic(user, pass))
     }
 
-    private fun lookupPart(upc: String?, id: String? = null) {
+    private fun handleIncomingScan(scanData: String) {
+        val trimmed = scanData.trim()
+        if (trimmed.isEmpty()) return
+
+        // Check if the scanned barcode/QR is a Bin identifier (e.g. starts with "BIN:", "BIN-", "BIN ")
+        if (trimmed.startsWith("BIN:", ignoreCase = true) ||
+            trimmed.startsWith("BIN-", ignoreCase = true) ||
+            trimmed.startsWith("BIN ", ignoreCase = true)) {
+            val cleanLocation = trimmed.replace(Regex("^(?i)bin[:\\s\\-]+"), "").trim()
+            lookupBin(cleanLocation.ifEmpty { trimmed })
+        } else {
+            // First look up as part barcode/UPC; fallback automatically to bin lookup if not found (404)
+            lookupPart(upc = trimmed, fallbackToBin = true)
+        }
+    }
+
+    private fun lookupPart(upc: String?, id: String? = null, fallbackToBin: Boolean = false) {
         if (upc.isNullOrEmpty() && id.isNullOrEmpty()) return
 
         if (binding.layoutLoadingOverlay.visibility == View.VISIBLE) {
@@ -665,11 +693,16 @@ class MainActivity : AppCompatActivity() {
                             playBeep(false)
                         }
                     } else if (code == 404) {
-                        binding.tvScanStatus.text = if (!upc.isNullOrEmpty()) "Part not found for barcode: $upc" else "Part not found"
-                        binding.tvScanStatus.setTextColor(resources.getColor(R.color.amber_deduct))
-                        binding.cardPlaceholder.visibility = View.VISIBLE
-                        binding.cardPartInfo.visibility = View.GONE
-                        playBeep(false)
+                        if (fallbackToBin && !upc.isNullOrEmpty()) {
+                            // If UPC lookup fails, seamlessly check if the scanned value represents a storage bin!
+                            lookupBin(upc)
+                        } else {
+                            binding.tvScanStatus.text = if (!upc.isNullOrEmpty()) "Part not found for barcode: $upc" else "Part not found"
+                            binding.tvScanStatus.setTextColor(resources.getColor(R.color.amber_deduct))
+                            binding.cardPlaceholder.visibility = View.VISIBLE
+                            binding.cardPartInfo.visibility = View.GONE
+                            playBeep(false)
+                        }
                     } else if (code == 401) {
                         binding.tvScanStatus.text = "Authentication failed! Tap Settings."
                         binding.tvScanStatus.setTextColor(resources.getColor(R.color.amber_deduct))
@@ -678,6 +711,111 @@ class MainActivity : AppCompatActivity() {
                         playBeep(false)
                     } else {
                         binding.tvScanStatus.text = "Server error ($code)"
+                        binding.tvScanStatus.setTextColor(resources.getColor(R.color.amber_deduct))
+                        binding.cardPlaceholder.visibility = View.VISIBLE
+                        binding.cardPartInfo.visibility = View.GONE
+                        playBeep(false)
+                    }
+                }
+            }
+        })
+    }
+
+    private fun lookupBin(locationQuery: String) {
+        val config = getCredentials()
+        if (config == null) {
+            binding.tvScanStatus.text = "Setup Required: Tap Gear icon"
+            binding.tvScanStatus.setTextColor(resources.getColor(R.color.amber_deduct))
+            playBeep(false)
+            startActivity(Intent(this, SettingsActivity::class.java))
+            return
+        }
+
+        binding.layoutLoadingOverlay.visibility = View.VISIBLE
+        binding.tvLoadingMessage.text = "Checking bin: $locationQuery..."
+
+        val (serverUrl, credential) = config
+        val cleanLocation = locationQuery.replace(Regex("^(?i)bin[:\\s\\-]+"), "").trim().ifEmpty { locationQuery.trim() }
+        val encoded = java.net.URLEncoder.encode(cleanLocation, "UTF-8")
+        val endpoint = if (serverUrl.endsWith("/")) "${serverUrl}api/scanner/bin?location=$encoded" else "$serverUrl/api/scanner/bin?location=$encoded"
+
+        val request = Request.Builder()
+            .url(endpoint)
+            .header("Authorization", credential)
+            .build()
+
+        client.newCall(request).enqueue(object : okhttp3.Callback {
+            override fun onFailure(call: okhttp3.Call, e: IOException) {
+                Handler(Looper.getMainLooper()).post {
+                    binding.layoutLoadingOverlay.visibility = View.GONE
+                    binding.tvScanStatus.text = "Network Error: ${e.message}"
+                    binding.tvScanStatus.setTextColor(resources.getColor(R.color.amber_deduct))
+                    playBeep(false)
+                }
+            }
+
+            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                val responseData = response.body?.string() ?: ""
+                val code = response.code
+                response.close()
+
+                Handler(Looper.getMainLooper()).post {
+                    binding.layoutLoadingOverlay.visibility = View.GONE
+                    if (code == 200) {
+                        try {
+                            val json = JSONObject(responseData)
+                            val binName = json.optString("location", locationQuery)
+                            val partsArr = json.optJSONArray("parts") ?: org.json.JSONArray()
+                            val partsList = mutableListOf<BinPartItem>()
+
+                            for (i in 0 until partsArr.length()) {
+                                val pObj = partsArr.getJSONObject(i)
+                                partsList.add(
+                                    BinPartItem(
+                                        id = pObj.getString("id"),
+                                        name = pObj.getString("name"),
+                                        description = pObj.optString("description", ""),
+                                        upc = if (pObj.has("upc") && !pObj.isNull("upc")) pObj.getString("upc") else null,
+                                        category = pObj.optString("category", ""),
+                                        location = pObj.optString("location", binName),
+                                        locationColor = pObj.optString("locationColor", "#4b5563"),
+                                        stock = pObj.optInt("stock", 0),
+                                        imageUrl = pObj.optString("imageUrl", null)
+                                    )
+                                )
+                            }
+
+                            if (partsList.isEmpty()) {
+                                binding.tvScanStatus.text = "Bin '$binName' found, but contains no parts."
+                                binding.tvScanStatus.setTextColor(resources.getColor(R.color.amber_deduct))
+                                playBeep(false)
+                            } else if (partsList.size == 1) {
+                                // Exactly 1 part in bin - load directly!
+                                val singlePart = partsList[0]
+                                binding.tvScanStatus.text = "Bin $binName: Loaded ${singlePart.name}"
+                                lookupPart(upc = null, id = singlePart.id, fallbackToBin = false)
+                            } else {
+                                // Multiple parts in bin - present interactive picker!
+                                playBeep(true)
+                                binding.tvScanStatus.text = "Bin $binName: ${partsList.size} parts found"
+                                binding.tvScanStatus.setTextColor(resources.getColor(R.color.primary))
+                                BinPartsPickerDialog(
+                                    context = this@MainActivity,
+                                    binLocation = binName,
+                                    parts = partsList,
+                                    onPartSelected = { selectedPart ->
+                                        binding.tvScanStatus.text = "Selected: ${selectedPart.name}"
+                                        lookupPart(upc = null, id = selectedPart.id, fallbackToBin = false)
+                                    }
+                                ).show()
+                            }
+                        } catch (e: Exception) {
+                            binding.tvScanStatus.text = "Bin parse error"
+                            binding.tvScanStatus.setTextColor(resources.getColor(R.color.amber_deduct))
+                            playBeep(false)
+                        }
+                    } else {
+                        binding.tvScanStatus.text = "No part or bin found for '$locationQuery'"
                         binding.tvScanStatus.setTextColor(resources.getColor(R.color.amber_deduct))
                         binding.cardPlaceholder.visibility = View.VISIBLE
                         binding.cardPartInfo.visibility = View.GONE
@@ -950,7 +1088,7 @@ class MainActivity : AppCompatActivity() {
                     if (currentTabId == R.id.nav_scan) {
                         binding.tvScanStatus.text = "Camera Scanned: $rawValue"
                         binding.tvScanStatus.setTextColor(resources.getColor(R.color.primary))
-                        lookupPart(rawValue)
+                        handleIncomingScan(rawValue)
                     } else if (currentTabId == R.id.nav_search) {
                         binding.etSearchQuery.setText(rawValue)
                         performSearch(rawValue)

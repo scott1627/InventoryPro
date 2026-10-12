@@ -138,7 +138,8 @@ class PrintLabelDialog(
     private fun queryBinCompanionsAsync() {
         val sUrl = serverUrl ?: return
         val auth = credential ?: return
-        val url = if (sUrl.endsWith("/")) "${sUrl}api/scanner/bin?location=${binLocation.trim()}" else "$sUrl/api/scanner/bin?location=${binLocation.trim()}"
+        val encodedBin = java.net.URLEncoder.encode(binLocation.trim(), "UTF-8")
+        val url = if (sUrl.endsWith("/")) "${sUrl}api/scanner/bin?location=$encodedBin" else "$sUrl/api/scanner/bin?location=$encodedBin"
 
         val request = Request.Builder()
             .url(url)
