@@ -39,15 +39,6 @@
                     android:textColor="@color/primary"
                     android:textSize="10sp"
                     android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvPartId"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="• ID: 123"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="10sp" />
             </LinearLayout>
 
             <TextView

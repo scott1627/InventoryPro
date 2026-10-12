@@ -668,7 +668,7 @@ class MainActivity : AppCompatActivity() {
                             currentPartImageUrl = if (imageUrl.isNotEmpty() && imageUrl != "null") imageUrl else null
                             if (!currentPartImageUrl.isNullOrEmpty()) {
                                 binding.tvPhotoStatus.text = "Loading photo..."
-                                binding.btnCapturePhoto.text = "Update Photo"
+                                binding.btnCapturePhoto.contentDescription = "Update Photo"
                                 binding.ivPartPhoto.visibility = View.GONE
                                 binding.ivPhotoPlaceholder.visibility = View.VISIBLE
                                 loadPartPhotoFromServer(currentPartImageUrl!!)
@@ -1280,7 +1280,7 @@ class MainActivity : AppCompatActivity() {
                                     }
 
                                     binding.tvPhotoStatus.text = "Photo saved"
-                                    binding.btnCapturePhoto.text = "Update Photo"
+                                    binding.btnCapturePhoto.contentDescription = "Update Photo"
                                     binding.tvScanStatus.text = "Photo updated for $partName"
                                     binding.tvScanStatus.setTextColor(resources.getColor(R.color.green_add))
                                     Toast.makeText(this@MainActivity, "Photo updated successfully!", Toast.LENGTH_SHORT).show()
@@ -1316,7 +1316,7 @@ class MainActivity : AppCompatActivity() {
         binding.ivPartPhoto.setImageBitmap(bitmap)
         binding.ivPartPhoto.visibility = View.VISIBLE
         binding.ivPhotoPlaceholder.visibility = View.GONE
-        binding.btnCapturePhoto.text = "Update Photo"
+        binding.btnCapturePhoto.contentDescription = "Update Photo"
         binding.tvPhotoStatus.text = "Photo saved"
     }
 
@@ -1324,7 +1324,7 @@ class MainActivity : AppCompatActivity() {
         binding.ivPartPhoto.setImageDrawable(null)
         binding.ivPartPhoto.visibility = View.GONE
         binding.ivPhotoPlaceholder.visibility = View.VISIBLE
-        binding.btnCapturePhoto.text = "Take Photo"
+        binding.btnCapturePhoto.contentDescription = "Take Photo"
         binding.tvPhotoStatus.text = "No photo assigned"
         binding.layoutPhotoUploading.visibility = View.GONE
         binding.btnCapturePhoto.isEnabled = true

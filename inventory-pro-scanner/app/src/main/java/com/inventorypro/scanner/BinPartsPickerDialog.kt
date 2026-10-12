@@ -29,7 +29,6 @@ class BinPartsAdapter(
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvCategory: TextView = view.findViewById(R.id.tvCategory)
-        val tvPartId: TextView = view.findViewById(R.id.tvPartId)
         val tvPartName: TextView = view.findViewById(R.id.tvPartName)
         val tvPartDescription: TextView = view.findViewById(R.id.tvPartDescription)
         val tvPartStock: TextView = view.findViewById(R.id.tvPartStock)
@@ -44,7 +43,6 @@ class BinPartsAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = items[position]
         holder.tvCategory.text = item.category.uppercase()
-        holder.tvPartId.text = "• ID: ${item.id}"
         holder.tvPartName.text = item.name
         holder.tvPartDescription.text = item.description.ifEmpty { "No description" }
         holder.tvPartStock.text = item.stock.toString()

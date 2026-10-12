@@ -219,16 +219,7 @@
                     android:id="@+id/rbDualStacked"
                     android:layout_width="match_parent"
                     android:layout_height="36dp"
-                    android:text="Combined Bin (Stacked + Bin QR)"
-                    android:textColor="@color/text_primary"
-                    android:textSize="13sp"
-                    android:visibility="gone" />
-
-                <RadioButton
-                    android:id="@+id/rbDualSplitQr"
-                    android:layout_width="match_parent"
-                    android:layout_height="36dp"
-                    android:text="Combined Bin (Dual QR Codes)"
+                    android:text="Combined Bin (Stacked Label)"
                     android:textColor="@color/text_primary"
                     android:textSize="13sp"
                     android:visibility="gone" />
@@ -385,31 +376,6 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Progress indicator and status message -->
-            <LinearLayout
-                android:id="@+id/layoutPrintProgress"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:visibility="gone">
-
-                <ProgressBar
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:indeterminate="true" />
-
-                <TextView
-                    android:id="@+id/tvPrintProgressStatus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:text="Preparing print..."
-                    android:textColor="@color/primary"
-                    android:textSize="13sp" />
-            </LinearLayout>
-
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
@@ -418,6 +384,34 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="@color/border" />
+
+    <!-- Progress indicator and status message (Pinned, always visible above buttons) -->
+    <LinearLayout
+        android:id="@+id/layoutPrintProgress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#152E7D32"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="18dp"
+        android:paddingVertical="10dp"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:indeterminate="true" />
+
+        <TextView
+            android:id="@+id/tvPrintProgressStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:text="Printing in progress..."
+            android:textColor="@color/primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"

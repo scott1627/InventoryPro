@@ -40,8 +40,7 @@ object LabelBitmapGenerator {
         BIN_LABEL_QR("Bin Label (QR Code + Large Bin)"),
         ITEM_LABEL_BARCODE("Item Label (1D Barcode + Details)"),
         COMPACT_BIN("Compact Bin Tag"),
-        DUAL_PART_STACKED("Combined Bin (Stacked + Bin QR)"),
-        DUAL_PART_SPLIT_QR("Combined Bin (Dual QR Codes)")
+        DUAL_PART_STACKED("Combined Bin (Stacked Label)")
     }
 
     /**
@@ -60,18 +59,19 @@ object LabelBitmapGenerator {
         val cleanName = if (partName.isNotBlank()) partName.trim() else "Unnamed Item"
 
         return when (style) {
-            LabelStyle.BIN_LABEL_QR -> renderBinLabelQr(cleanBarcode, cleanName, cleanBin, category, partId)
-            LabelStyle.ITEM_LABEL_BARCODE -> renderItemLabelBarcode(cleanBarcode, cleanName, cleanBin, category, partId)
-            LabelStyle.COMPACT_BIN -> renderCompactBinLabel(cleanBarcode, cleanName, cleanBin, partId)
-            LabelStyle.DUAL_PART_STACKED, LabelStyle.DUAL_PART_SPLIT_QR -> {
+            LabelStyle.BIN_LABEL_QR -> renderBinLabelQr(cleanBarcode, cleanName, cleanBin, category)
+            LabelStyle.ITEM_LABEL_BARCODE -> renderItemLabelBarcode(cleanBarcode, cleanName, cleanBin)
+            LabelStyle.COMPACT_BIN -> renderCompactBinLabel(cleanBarcode, cleanName, cleanBin, category)
+            LabelStyle.DUAL_PART_STACKED -> {
                 // If dual style called with single part, fallback to standard bin QR
-                renderBinLabelQr(cleanBarcode, cleanName, cleanBin, category, partId)
+                renderBinLabelQr(cleanBarcode, cleanName, cleanBin, category)
             }
         }
     }
 
     /**
      * Generates a combined label for two parts residing in the same bin.
+     * Dimensions fit comfortably inside 40mm bins (312 dots width).
      */
     fun generateDualLabel(
         part1: LabelPartInfo,
@@ -80,32 +80,29 @@ object LabelBitmapGenerator {
         style: LabelStyle = LabelStyle.DUAL_PART_STACKED
     ): Bitmap {
         val cleanBin = if (binLocation.isNotBlank()) binLocation.trim() else if (part1.binLocation.isNotBlank()) part1.binLocation.trim() else "NO-BIN"
-        return when (style) {
-            LabelStyle.DUAL_PART_SPLIT_QR -> renderDualSideBySideLabel(part1, part2, cleanBin)
-            else -> renderDualStackedLabel(part1, part2, cleanBin)
-        }
+        return renderDualStackedLabel(part1, part2, cleanBin)
     }
 
     /**
      * Bin Label Layout:
      * [ QR Code 84x84 ] | BIN: A-12-03 (Large Bold)
      *                   | Part Name (Bold)
-     *                   | Part ID • Category
+     *                   | Category
+     * Width: 312 dots (~39mm at 203 DPI to fit 40mm bins)
      */
     private fun renderBinLabelQr(
         barcode: String,
         partName: String,
         binLocation: String,
-        category: String,
-        partId: String
+        category: String
     ): Bitmap {
-        val width = 360
+        val width = 312
         val bitmap = Bitmap.createBitmap(width, HEAD_DOTS, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.WHITE)
 
         val paint = Paint().apply {
-            isAntiAlias = false // Crisp thermal edges
+            isAntiAlias = false
             color = Color.BLACK
         }
 
@@ -115,43 +112,44 @@ object LabelBitmapGenerator {
             canvas.drawBitmap(qrBitmap, 6f, 6f, null)
         }
 
-        // 2. Vertical separator dashed line at x = 96
+        // 2. Vertical separator dashed line at x = 94
         paint.strokeWidth = 1f
         for (y in 8 until (HEAD_DOTS - 8) step 4) {
-            canvas.drawLine(96f, y.toFloat(), 96f, (y + 2).toFloat(), paint)
+            canvas.drawLine(94f, y.toFloat(), 94f, (y + 2).toFloat(), paint)
         }
 
         // 3. Right column text
-        val textLeft = 104f
+        val textLeft = 100f
+        val maxTextWidth = (width - textLeft - 6)
 
-        // Top line: Large Bin Location with optional pill border
+        // Top line: Large Bin Location
         val binPaint = Paint().apply {
             isAntiAlias = true
             color = Color.BLACK
-            textSize = 25f
+            textSize = 22f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
         val binText = if (binLocation.startsWith("BIN", ignoreCase = true)) binLocation.uppercase(Locale.US) else "BIN: ${binLocation.uppercase(Locale.US)}"
-        canvas.drawText(truncateText(binText, binPaint, (width - textLeft - 8)), textLeft, 30f, binPaint)
+        canvas.drawText(truncateText(binText, binPaint, maxTextWidth), textLeft, 28f, binPaint)
 
         // Middle line: Part Name
         val namePaint = Paint().apply {
             isAntiAlias = true
             color = Color.BLACK
-            textSize = 17f
+            textSize = 15f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
-        canvas.drawText(truncateText(partName, namePaint, (width - textLeft - 8)), textLeft, 56f, namePaint)
+        canvas.drawText(truncateText(partName, namePaint, maxTextWidth), textLeft, 54f, namePaint)
 
-        // Bottom line: SKU / Barcode & Category
+        // Bottom line: Category (No ID, No Quantity)
         val subPaint = Paint().apply {
             isAntiAlias = true
             color = Color.BLACK
-            textSize = 13f
+            textSize = 12f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         }
-        val subText = if (category.isNotBlank()) "$partId  •  $category" else "$partId  •  $barcode"
-        canvas.drawText(truncateText(subText, subPaint, (width - textLeft - 8)), textLeft, 78f, subPaint)
+        val subText = if (category.isNotBlank()) category.trim() else barcode.trim()
+        canvas.drawText(truncateText(subText, subPaint, maxTextWidth), textLeft, 76f, subPaint)
 
         return bitmap
     }
@@ -161,15 +159,14 @@ object LabelBitmapGenerator {
      * Top: Part Name & [BIN]
      * Middle: Code 128 Barcode
      * Bottom: Human-readable barcode text
+     * Width: 312 dots (~39mm at 203 DPI)
      */
     private fun renderItemLabelBarcode(
         barcode: String,
         partName: String,
-        binLocation: String,
-        category: String,
-        partId: String
+        binLocation: String
     ): Bitmap {
-        val width = 400
+        val width = 312
         val bitmap = Bitmap.createBitmap(width, HEAD_DOTS, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.WHITE)
@@ -183,57 +180,58 @@ object LabelBitmapGenerator {
         val titlePaint = Paint().apply {
             isAntiAlias = true
             color = Color.BLACK
-            textSize = 16f
+            textSize = 14f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
-        canvas.drawText(truncateText(partName, titlePaint, 270f), 8f, 20f, titlePaint)
+        canvas.drawText(truncateText(partName, titlePaint, 190f), 6f, 18f, titlePaint)
 
         // Bin badge on top right (inverted black badge with white text)
         val badgeText = binLocation.uppercase(Locale.US)
         val badgePaint = Paint().apply {
             isAntiAlias = true
-            textSize = 13f
+            textSize = 12f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
         val textWidth = badgePaint.measureText(badgeText)
-        val badgeRect = RectF(width - textWidth - 22f, 4f, width - 8f, 24f)
+        val badgeRect = RectF(width - textWidth - 18f, 3f, width - 6f, 21f)
         paint.color = Color.BLACK
         canvas.drawRoundRect(badgeRect, 4f, 4f, paint)
 
         badgePaint.color = Color.WHITE
-        canvas.drawText(badgeText, badgeRect.left + 7f, 19f, badgePaint)
+        canvas.drawText(badgeText, badgeRect.left + 6f, 17f, badgePaint)
 
         // 1D Barcode in the center (Code 128)
-        val barcodeBitmap = generate1DBarcodeBitmap(barcode, 360, 44)
+        val barcodeBitmap = generate1DBarcodeBitmap(barcode, 260, 40)
         if (barcodeBitmap != null) {
             val startX = (width - barcodeBitmap.width) / 2f
-            canvas.drawBitmap(barcodeBitmap, startX, 28f, null)
+            canvas.drawBitmap(barcodeBitmap, startX, 26f, null)
         }
 
-        // Human-readable barcode digits under barcode
+        // Human-readable barcode digits under barcode (No ID, No Quantity)
         val humanPaint = Paint().apply {
             isAntiAlias = true
             color = Color.BLACK
-            textSize = 13f
+            textSize = 12f
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
             textAlign = Paint.Align.CENTER
         }
-        canvas.drawText(barcode, width / 2f, 88f, humanPaint)
+        canvas.drawText(barcode, width / 2f, 84f, humanPaint)
 
         return bitmap
     }
 
     /**
      * Compact Bin Label:
-     * 280 x 96 dots with bold prominent bin text.
+     * 300 x 96 dots with bold prominent bin text.
+     * Fits comfortably within 40mm.
      */
     private fun renderCompactBinLabel(
         barcode: String,
         partName: String,
         binLocation: String,
-        partId: String
+        category: String
     ): Bitmap {
-        val width = 280
+        val width = 300
         val bitmap = Bitmap.createBitmap(width, HEAD_DOTS, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.WHITE)
@@ -241,57 +239,59 @@ object LabelBitmapGenerator {
         // QR Code 80x80 on the left
         val qr = generateQrCodeBitmap(barcode, 80, 80)
         if (qr != null) {
-            canvas.drawBitmap(qr, 8f, 8f, null)
+            canvas.drawBitmap(qr, 6f, 8f, null)
         }
 
-        val textLeft = 98f
+        val textLeft = 94f
+        val maxTextWidth = width - textLeft - 6f
 
-        // Giant Bin
+        // Giant Bin Location
         val binPaint = Paint().apply {
             isAntiAlias = true
             color = Color.BLACK
-            textSize = 30f
+            textSize = 28f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
-        canvas.drawText(truncateText(binLocation.uppercase(Locale.US), binPaint, width - textLeft - 8), textLeft, 38f, binPaint)
+        canvas.drawText(truncateText(binLocation.uppercase(Locale.US), binPaint, maxTextWidth), textLeft, 34f, binPaint)
 
-        // SKU / Part ID
-        val skuPaint = Paint().apply {
+        // Part name (No ID)
+        val namePaint = Paint().apply {
             isAntiAlias = true
             color = Color.BLACK
             textSize = 15f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
-        canvas.drawText(truncateText(partId, skuPaint, width - textLeft - 8), textLeft, 60f, skuPaint)
+        canvas.drawText(truncateText(partName, namePaint, maxTextWidth), textLeft, 58f, namePaint)
 
-        // Part name
-        val namePaint = Paint().apply {
+        // Category (No ID, No Quantity)
+        val catPaint = Paint().apply {
             isAntiAlias = true
             color = Color.BLACK
-            textSize = 13f
+            textSize = 12f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         }
-        canvas.drawText(truncateText(partName, namePaint, width - textLeft - 8), textLeft, 80f, namePaint)
+        val subText = if (category.isNotBlank()) category.trim() else barcode.trim()
+        canvas.drawText(truncateText(subText, catPaint, maxTextWidth), textLeft, 80f, catPaint)
 
         return bitmap
     }
 
     /**
-     * Dual-Part Layout Option 1: Stacked with Single Shared Bin QR Code.
-     * Dimensions: 410 x 96 dots.
+     * Dual-Part Layout: Stacked with Single Shared Bin QR Code.
+     * Dimensions: 312 x 96 dots (~39mm at 203 DPI to fit 40mm bins).
      * Left: 84x84 QR Code for Bin Location.
      * Right:
-     *   - Top: Bin Location Header (Bold 17f) + dividing rule.
-     *   - Middle: ① Part 1 Name (Bold 13.5f) & ID • Category (10.5f).
+     *   - Top: Bin Location Header (Bold 16f) + dividing rule.
+     *   - Middle: ① Part 1 Name (Bold 12.5f) & Category (10f) - NO ID, NO QTY.
      *   - Divider line.
-     *   - Bottom: ② Part 2 Name (Bold 13.5f) & ID • Category (10.5f).
+     *   - Bottom: ② Part 2 Name (Bold 12.5f) & Category (10f) - NO ID, NO QTY.
      */
     private fun renderDualStackedLabel(
         part1: LabelPartInfo,
         part2: LabelPartInfo,
         binLocation: String
     ): Bitmap {
-        val width = 410
+        val width = 312
         val bitmap = Bitmap.createBitmap(width, HEAD_DOTS, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.WHITE)
@@ -309,165 +309,62 @@ object LabelBitmapGenerator {
             canvas.drawBitmap(qr, 6f, 6f, null)
         }
 
-        // 2. Vertical dashed divider line at x = 96
+        // 2. Vertical dashed divider line at x = 94
         for (y in 6 until (HEAD_DOTS - 6) step 4) {
-            canvas.drawLine(96f, y.toFloat(), 96f, (y + 2).toFloat(), paint)
+            canvas.drawLine(94f, y.toFloat(), 94f, (y + 2).toFloat(), paint)
         }
 
-        val textLeft = 104f
-        val rightEdge = width - 8f
+        val textLeft = 100f
+        val rightEdge = width - 6f
         val maxTextWidth = rightEdge - textLeft
 
         // 3. Top Header: BIN Location
         val binPaint = Paint().apply {
             isAntiAlias = true
             color = Color.BLACK
-            textSize = 17f
+            textSize = 16f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
         val binText = if (binLocation.startsWith("BIN", ignoreCase = true)) binLocation.uppercase(Locale.US) else "BIN: ${binLocation.uppercase(Locale.US)}"
-        canvas.drawText(truncateText(binText, binPaint, maxTextWidth), textLeft, 20f, binPaint)
+        canvas.drawText(truncateText(binText, binPaint, maxTextWidth), textLeft, 19f, binPaint)
 
-        // Thin horizontal line under Bin header at y = 24
-        canvas.drawLine(textLeft, 24f, rightEdge, 24f, paint)
+        // Thin horizontal line under Bin header at y = 23
+        canvas.drawLine(textLeft, 23f, rightEdge, 23f, paint)
 
         // 4. Section ①: Part 1
         val namePaint = Paint().apply {
             isAntiAlias = true
             color = Color.BLACK
-            textSize = 13.5f
+            textSize = 12.5f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
         val subPaint = Paint().apply {
             isAntiAlias = true
             color = Color.BLACK
-            textSize = 10.5f
+            textSize = 10f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         }
 
         val p1Name = "① " + part1.name.trim()
-        canvas.drawText(truncateText(p1Name, namePaint, maxTextWidth), textLeft, 39f, namePaint)
+        canvas.drawText(truncateText(p1Name, namePaint, maxTextWidth), textLeft, 37f, namePaint)
 
-        val p1Sub = buildString {
-            append(part1.id.trim())
-            if (part1.category.isNotBlank()) append(" • ").append(part1.category.trim())
-            if (part1.stock > 0) append(" • Qty: ").append(part1.stock)
+        val p1Sub = part1.category.trim()
+        if (p1Sub.isNotEmpty()) {
+            canvas.drawText(truncateText(p1Sub, subPaint, maxTextWidth), textLeft, 49f, subPaint)
         }
-        canvas.drawText(truncateText(p1Sub, subPaint, maxTextWidth), textLeft, 52f, subPaint)
 
-        // Horizontal dashed separator at y = 57
+        // Horizontal dashed separator at y = 54
         for (x in textLeft.toInt() until rightEdge.toInt() step 5) {
-            canvas.drawLine(x.toFloat(), 57f, (x + 3).toFloat(), 57f, paint)
+            canvas.drawLine(x.toFloat(), 54f, (x + 3).toFloat(), 54f, paint)
         }
 
         // 5. Section ②: Part 2
         val p2Name = "② " + part2.name.trim()
-        canvas.drawText(truncateText(p2Name, namePaint, maxTextWidth), textLeft, 73f, namePaint)
+        canvas.drawText(truncateText(p2Name, namePaint, maxTextWidth), textLeft, 69f, namePaint)
 
-        val p2Sub = buildString {
-            append(part2.id.trim())
-            if (part2.category.isNotBlank()) append(" • ").append(part2.category.trim())
-            if (part2.stock > 0) append(" • Qty: ").append(part2.stock)
-        }
-        canvas.drawText(truncateText(p2Sub, subPaint, maxTextWidth), textLeft, 87f, subPaint)
-
-        return bitmap
-    }
-
-    /**
-     * Dual-Part Layout Option 2: Split with Dual Independent QR Codes.
-     * Dimensions: 440 x 96 dots.
-     * Top: Prominent inverted black header pill with "BIN: A-12-03".
-     * Left: Mini QR code (58x58) for Part 1 + Part 1 details.
-     * Divider: Vertical separator down the middle.
-     * Right: Mini QR code (58x58) for Part 2 + Part 2 details.
-     */
-    private fun renderDualSideBySideLabel(
-        part1: LabelPartInfo,
-        part2: LabelPartInfo,
-        binLocation: String
-    ): Bitmap {
-        val width = 440
-        val bitmap = Bitmap.createBitmap(width, HEAD_DOTS, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        canvas.drawColor(Color.WHITE)
-
-        val paint = Paint().apply {
-            color = Color.BLACK
-            isAntiAlias = false
-            strokeWidth = 1f
-        }
-
-        // 1. Top Bin Header: Inverted black pill badge spanning width
-        val badgeRect = RectF(6f, 3f, width - 6f, 21f)
-        val paintBlack = Paint().apply {
-            color = Color.BLACK
-            isAntiAlias = true
-        }
-        canvas.drawRoundRect(badgeRect, 4f, 4f, paintBlack)
-
-        val binTextPaint = Paint().apply {
-            isAntiAlias = true
-            color = Color.WHITE
-            textSize = 13f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            textAlign = Paint.Align.CENTER
-        }
-        val binText = if (binLocation.startsWith("BIN", ignoreCase = true)) binLocation.uppercase(Locale.US) else "BIN: ${binLocation.uppercase(Locale.US)}"
-        canvas.drawText(binText, width / 2f, 17f, binTextPaint)
-
-        // 2. Central Vertical dashed line at x = 220 from y = 24 to 92
-        for (y in 24 until (HEAD_DOTS - 4) step 4) {
-            canvas.drawLine(220f, y.toFloat(), 220f, (y + 2).toFloat(), paint)
-        }
-
-        val namePaint = Paint().apply {
-            isAntiAlias = true
-            color = Color.BLACK
-            textSize = 12f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        }
-        val idPaint = Paint().apply {
-            isAntiAlias = true
-            color = Color.BLACK
-            textSize = 10f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        }
-        val detailPaint = Paint().apply {
-            isAntiAlias = true
-            color = Color.BLACK
-            textSize = 9.5f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-        }
-
-        // 3. Left Half: Part 1
-        val qr1 = generateQrCodeBitmap(part1.cleanBarcode, 58, 58)
-        if (qr1 != null) {
-            canvas.drawBitmap(qr1, 8f, 28f, null)
-        }
-        val textLeft1 = 70f
-        val textWidth1 = 212f - textLeft1
-        canvas.drawText(truncateText("① " + part1.name, namePaint, textWidth1), textLeft1, 42f, namePaint)
-        canvas.drawText(truncateText(part1.id, idPaint, textWidth1), textLeft1, 57f, idPaint)
-        val p1Info = if (part1.category.isNotBlank()) part1.category else if (part1.stock > 0) "Qty: ${part1.stock}" else part1.cleanBarcode
-        canvas.drawText(truncateText(p1Info, detailPaint, textWidth1), textLeft1, 71f, detailPaint)
-        if (part1.stock > 0 && part1.category.isNotBlank()) {
-            canvas.drawText(truncateText("Qty: ${part1.stock}", detailPaint, textWidth1), textLeft1, 84f, detailPaint)
-        }
-
-        // 4. Right Half: Part 2
-        val qr2 = generateQrCodeBitmap(part2.cleanBarcode, 58, 58)
-        if (qr2 != null) {
-            canvas.drawBitmap(qr2, 228f, 28f, null)
-        }
-        val textLeft2 = 290f
-        val textWidth2 = (width - 8f) - textLeft2
-        canvas.drawText(truncateText("② " + part2.name, namePaint, textWidth2), textLeft2, 42f, namePaint)
-        canvas.drawText(truncateText(part2.id, idPaint, textWidth2), textLeft2, 57f, idPaint)
-        val p2Info = if (part2.category.isNotBlank()) part2.category else if (part2.stock > 0) "Qty: ${part2.stock}" else part2.cleanBarcode
-        canvas.drawText(truncateText(p2Info, detailPaint, textWidth2), textLeft2, 71f, detailPaint)
-        if (part2.stock > 0 && part2.category.isNotBlank()) {
-            canvas.drawText(truncateText("Qty: ${part2.stock}", detailPaint, textWidth2), textLeft2, 84f, detailPaint)
+        val p2Sub = part2.category.trim()
+        if (p2Sub.isNotEmpty()) {
+            canvas.drawText(truncateText(p2Sub, subPaint, maxTextWidth), textLeft, 82f, subPaint)
         }
 
         return bitmap
@@ -475,9 +372,10 @@ object LabelBitmapGenerator {
 
     /**
      * Test print label for verifying BLE connectivity, printhead alignment and contrast.
+     * Dimensions: 312 x 96 dots (fits 40mm tape).
      */
     fun generateTestLabel(): Bitmap {
-        val width = 340
+        val width = 312
         val bitmap = Bitmap.createBitmap(width, HEAD_DOTS, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.WHITE)

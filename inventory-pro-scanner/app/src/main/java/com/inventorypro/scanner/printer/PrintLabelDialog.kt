@@ -91,7 +91,7 @@ class PrintLabelDialog(
         if (availableCompanions.size > 1) {
             binding.layoutCompanionPicker.visibility = View.VISIBLE
             val spinnerLabels = availableCompanions.map {
-                "${it.name} (${it.id})"
+                if (it.category.isNotBlank()) "${it.name} • ${it.category}" else it.name
             }
             val adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, spinnerLabels)
             binding.spinnerCompanionPart.adapter = adapter
@@ -111,9 +111,8 @@ class PrintLabelDialog(
 
         binding.switchCombineParts.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                // Show dual styles, hide single-part specific styles
+                // Show dual stacked style, hide single-part specific styles
                 binding.rbDualStacked.visibility = View.VISIBLE
-                binding.rbDualSplitQr.visibility = View.VISIBLE
                 binding.rbBinQr.visibility = View.GONE
                 binding.rbItemBarcode.visibility = View.GONE
                 binding.rbCompactBin.visibility = View.GONE
@@ -123,7 +122,6 @@ class PrintLabelDialog(
             } else {
                 // Revert to single-part styles
                 binding.rbDualStacked.visibility = View.GONE
-                binding.rbDualSplitQr.visibility = View.GONE
                 binding.rbBinQr.visibility = View.VISIBLE
                 binding.rbItemBarcode.visibility = View.VISIBLE
                 binding.rbCompactBin.visibility = View.VISIBLE
@@ -197,7 +195,6 @@ class PrintLabelDialog(
             currentStyle = when (checkedId) {
                 R.id.rbItemBarcode -> LabelBitmapGenerator.LabelStyle.ITEM_LABEL_BARCODE
                 R.id.rbCompactBin -> LabelBitmapGenerator.LabelStyle.COMPACT_BIN
-                R.id.rbDualSplitQr -> LabelBitmapGenerator.LabelStyle.DUAL_PART_SPLIT_QR
                 R.id.rbDualStacked -> LabelBitmapGenerator.LabelStyle.DUAL_PART_STACKED
                 else -> {
                     if (binding.switchCombineParts.isChecked) {
@@ -333,8 +330,11 @@ class PrintLabelDialog(
 
         selectedDensity = binding.spinnerDensity.selectedItemPosition + 1
 
+        // Immediate visual feedback that printing is in progress
+        Toast.makeText(context, "Printing in progress...", Toast.LENGTH_SHORT).show()
         binding.layoutPrintProgress.visibility = View.VISIBLE
-        binding.tvPrintProgressStatus.text = "Connecting to $targetMac..."
+        binding.tvPrintProgressStatus.text = "Printing in progress: Connecting to $targetMac..."
+        binding.btnExecutePrint.text = "Printing in progress..."
         binding.btnExecutePrint.isEnabled = false
         binding.btnCancelPrint.isEnabled = false
         binding.btnSelectPrinter.isEnabled = false
@@ -345,10 +345,11 @@ class PrintLabelDialog(
             density = selectedDensity,
             copies = currentCopies,
             onProgress = { status ->
-                binding.tvPrintProgressStatus.text = status
+                binding.tvPrintProgressStatus.text = "Printing in progress: $status"
             },
             onComplete = { success, errorMsg ->
                 binding.layoutPrintProgress.visibility = View.GONE
+                binding.btnExecutePrint.text = "Print Label"
                 binding.btnExecutePrint.isEnabled = true
                 binding.btnCancelPrint.isEnabled = true
                 binding.btnSelectPrinter.isEnabled = true
