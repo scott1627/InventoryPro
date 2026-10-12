@@ -29,7 +29,10 @@ export async function GET(request: NextRequest) {
             where: {
                 OR: [
                     { name: { contains: query, mode: "insensitive" } },
-                    { description: { contains: query, mode: "insensitive" } }
+                    { description: { contains: query, mode: "insensitive" } },
+                    { upc: { contains: query, mode: "insensitive" } },
+                    { storageLocation: { name: { contains: query, mode: "insensitive" } } },
+                    { storageLocation: { parent: { name: { contains: query, mode: "insensitive" } } } }
                 ]
             },
             include: {

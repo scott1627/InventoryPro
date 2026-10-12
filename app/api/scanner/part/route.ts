@@ -61,6 +61,27 @@ export async function GET(request: NextRequest) {
         
         const locationColor = part.storageLocation.color || part.storageLocation.parent?.color || "#4b5563";
 
+        // Query sibling parts sharing the same bin / storage location
+        const siblingParts = await prisma.part.findMany({
+            where: {
+                storageLocationId: part.storageLocationId
+            },
+            include: {
+                category: { select: { name: true } },
+                stockLevels: { orderBy: { id: "desc" }, take: 1 }
+            }
+        });
+
+        const binParts = siblingParts.map(sp => ({
+            id: sp.id,
+            name: sp.name,
+            description: sp.description,
+            upc: sp.upc,
+            category: sp.category.name,
+            stock: sp.stockLevels[0]?.quantity ?? 0,
+            imageUrl: sp.imageUrl
+        }));
+
         return new NextResponse(
             JSON.stringify({
                 id: part.id,
@@ -71,7 +92,8 @@ export async function GET(request: NextRequest) {
                 location: locationName,
                 locationColor: locationColor,
                 stock: part.stockLevels[0]?.quantity ?? 0,
-                imageUrl: part.imageUrl
+                imageUrl: part.imageUrl,
+                binParts: binParts
             }),
             { status: 200, headers: { "Content-Type": "application/json" } }
         );

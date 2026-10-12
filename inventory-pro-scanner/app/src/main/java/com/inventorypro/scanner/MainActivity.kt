@@ -10,13 +10,17 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Matrix
+import android.graphics.Rect
 import android.media.AudioManager
 import android.media.ExifInterface
 import android.media.ToneGenerator
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.MotionEvent
 import android.view.View
+import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -39,6 +43,8 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
+import com.inventorypro.scanner.printer.PrintLabelDialog
+import com.inventorypro.scanner.printer.SupvanBleManager
 import java.util.Date
 import java.util.Locale
 
@@ -50,8 +56,15 @@ class MainActivity : AppCompatActivity() {
 
     private var currentPartId: String? = null
     private var currentPartName: String? = null
+    private var currentPartCategory: String? = null
+    private var currentPartLocation: String? = null
+    private var currentPartLocationColor: String? = null
+    private var currentPartUpc: String? = null
     private var currentPartImageUrl: String? = null
     private var tempPhotoFile: File? = null
+    private val currentBinParts = mutableListOf<com.inventorypro.scanner.printer.LabelBitmapGenerator.LabelPartInfo>()
+
+    private lateinit var bleManager: SupvanBleManager
 
     private var isZebraEnabled = true
     private var isCameraEnabled = true
@@ -60,6 +73,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var searchAdapter: SearchResultAdapter
     private lateinit var jobAdapter: JobAdapter
+    private lateinit var sessionHistoryAdapter: SessionHistoryAdapter
+    private val sessionHistoryList = mutableListOf<SessionHistoryItem>()
 
     // Launcher for image cropping activity
     private val cropImageLauncher = registerForActivityResult(
@@ -135,8 +150,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val sessionLogs = StringBuilder()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -144,6 +157,11 @@ class MainActivity : AppCompatActivity() {
 
         // Hide the default Action Bar since we have a custom header bar
         supportActionBar?.hide()
+
+        // Ensure root layout receives focus initially so no input field auto-focuses or opens keyboard
+        binding.root.requestFocus()
+        binding.etAdjustQuantity.clearFocus()
+        binding.etManualBarcode.clearFocus()
 
         // Setup Zebra DataWedge Profile programmatically
         setupDataWedgeProfile()
@@ -185,6 +203,8 @@ class MainActivity : AppCompatActivity() {
             startCameraScan()
         }
 
+        bleManager = SupvanBleManager(this)
+
         binding.btnCapturePhoto.setOnClickListener {
             checkAndLaunchCamera()
         }
@@ -193,8 +213,48 @@ class MainActivity : AppCompatActivity() {
             checkAndLaunchCamera()
         }
 
+        binding.tvBinSharedBadge.setOnClickListener {
+            binding.btnPrintLabel.performClick()
+        }
+
+        binding.btnPrintLabel.setOnClickListener {
+            val partId = currentPartId
+            if (partId == null) {
+                Toast.makeText(this, "Please scan or select a part first", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (!SupvanBleManager.hasPermissions(this)) {
+                androidx.core.app.ActivityCompat.requestPermissions(
+                    this,
+                    SupvanBleManager.getRequiredPermissions(),
+                    102
+                )
+                return@setOnClickListener
+            }
+
+            val config = getCredentials()
+            val serverUrl = config?.first
+            val credential = config?.second
+
+            PrintLabelDialog(
+                context = this,
+                partId = partId,
+                partName = currentPartName ?: "Item",
+                binLocation = currentPartLocation ?: "",
+                category = currentPartCategory ?: "",
+                upcBarcode = currentPartUpc ?: "",
+                companionParts = currentBinParts,
+                serverUrl = serverUrl,
+                credential = credential,
+                bleManager = bleManager
+            ).show()
+        }
+
         // Initialize Bottom Navigation and Tab Toggling
         binding.bottomNavigation.setOnItemSelectedListener { item ->
+            hideKeyboard()
+            binding.root.requestFocus()
             when (item.itemId) {
                 R.id.nav_scan -> {
                     binding.layoutTabScan.visibility = View.VISIBLE
@@ -255,10 +315,39 @@ class MainActivity : AppCompatActivity() {
         }
         binding.rvJobsList.layoutManager = LinearLayoutManager(this)
         binding.rvJobsList.adapter = jobAdapter
+
+        // Setup Interactive Session History
+        sessionHistoryAdapter = SessionHistoryAdapter(
+            items = sessionHistoryList,
+            onItemClick = { item ->
+                binding.tvScanStatus.text = "Loading ${item.partName}..."
+                binding.tvScanStatus.setTextColor(ContextCompat.getColor(this, R.color.primary))
+                lookupPart(upc = item.upc, id = item.partId)
+                binding.scrollScanTab.smoothScrollTo(0, 0)
+            },
+            onUndoClick = { item ->
+                revertAdjustment(item)
+            }
+        )
+        binding.rvSessionHistory.layoutManager = LinearLayoutManager(this)
+        binding.rvSessionHistory.adapter = sessionHistoryAdapter
+
+        binding.btnClearHistory.setOnClickListener {
+            sessionHistoryList.clear()
+            sessionHistoryAdapter.notifyDataSetChanged()
+            updateHistoryUIState()
+            Toast.makeText(this, "Session history cleared", Toast.LENGTH_SHORT).show()
+        }
+        updateHistoryUIState()
     }
 
     override fun onResume() {
         super.onResume()
+        // Ensure inputs don't auto-grab focus and keyboard is hidden on app open/resume
+        binding.root.requestFocus()
+        binding.etAdjustQuantity.clearFocus()
+        hideKeyboard()
+
         // Load preferences
         val prefs = getSharedPreferences("ScannerConfig", Context.MODE_PRIVATE)
         isZebraEnabled = prefs.getBoolean("EnableZebra", true)
@@ -303,9 +392,118 @@ class MainActivity : AppCompatActivity() {
         toneGenerator?.release()
     }
 
+    private fun hideKeyboard() {
+        val view = currentFocus ?: binding.root
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.hideSoftInputFromWindow(view.windowToken, 0)
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        if (ev?.action == MotionEvent.ACTION_DOWN) {
+            val v = currentFocus
+            if (v is EditText) {
+                val outRect = Rect()
+                v.getGlobalVisibleRect(outRect)
+                if (!outRect.contains(ev.rawX.toInt(), ev.rawY.toInt())) {
+                    v.clearFocus()
+                    val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                    imm?.hideSoftInputFromWindow(v.windowToken, 0)
+                }
+            }
+        }
+        return super.dispatchTouchEvent(ev)
+    }
+
     private fun getAdjustmentAmount(): Int {
         val qtyText = binding.etAdjustQuantity.text.toString().trim()
         return qtyText.toIntOrNull() ?: 1
+    }
+
+    private fun updateHistoryUIState() {
+        val count = sessionHistoryList.size
+        binding.tvHistoryHeader.text = "RECENT SESSION UPDATES ($count)"
+        if (count > 0) {
+            binding.rvSessionHistory.visibility = View.VISIBLE
+            binding.layoutEmptyHistory.visibility = View.GONE
+            binding.btnClearHistory.visibility = View.VISIBLE
+        } else {
+            binding.rvSessionHistory.visibility = View.GONE
+            binding.layoutEmptyHistory.visibility = View.VISIBLE
+            binding.btnClearHistory.visibility = View.GONE
+        }
+    }
+
+    private fun revertAdjustment(item: SessionHistoryItem) {
+        val config = getCredentials() ?: run {
+            Toast.makeText(this, "Setup required", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val inverseAmount = -item.deltaAmount
+        val (serverUrl, credential) = config
+        val endpoint = if (serverUrl.endsWith("/")) "${serverUrl}api/scanner/adjust" else "$serverUrl/api/scanner/adjust"
+
+        binding.layoutLoadingOverlay.visibility = View.VISIBLE
+        binding.tvLoadingMessage.text = "Reverting adjustment for ${item.partName}..."
+
+        val jsonBody = JSONObject().apply {
+            put("partId", item.partId)
+            put("amount", inverseAmount)
+        }
+
+        val requestBody = jsonBody.toString().toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url(endpoint)
+            .header("Authorization", credential)
+            .post(requestBody)
+            .build()
+
+        client.newCall(request).enqueue(object : okhttp3.Callback {
+            override fun onFailure(call: okhttp3.Call, e: IOException) {
+                Handler(Looper.getMainLooper()).post {
+                    binding.layoutLoadingOverlay.visibility = View.GONE
+                    Toast.makeText(this@MainActivity, "Revert failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                    playBeep(false)
+                }
+            }
+
+            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                val responseData = response.body?.string() ?: ""
+                val code = response.code
+                response.close()
+
+                Handler(Looper.getMainLooper()).post {
+                    binding.layoutLoadingOverlay.visibility = View.GONE
+                    if (code == 200) {
+                        try {
+                            val json = JSONObject(responseData)
+                            val newStock = json.getInt("newStock")
+
+                            // If this part is currently displayed on screen, update stock text
+                            if (currentPartId == item.partId) {
+                                binding.tvCurrentStock.text = newStock.toString()
+                            }
+
+                            // Remove item from session history
+                            sessionHistoryAdapter.removeItem(item)
+                            updateHistoryUIState()
+
+                            val revertSign = if (inverseAmount > 0) "+$inverseAmount" else "$inverseAmount"
+                            binding.tvScanStatus.text = "Reverted: ${item.partName} ($revertSign, Stock: $newStock)"
+                            binding.tvScanStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.green_add))
+                            Toast.makeText(this@MainActivity, "Reverted ${item.partName} ($revertSign)", Toast.LENGTH_SHORT).show()
+                            playBeep(true)
+                        } catch (e: Exception) {
+                            Toast.makeText(this@MainActivity, "Revert response error", Toast.LENGTH_SHORT).show()
+                            playBeep(false)
+                        }
+                    } else {
+                        Toast.makeText(this@MainActivity, "Revert failed ($code)", Toast.LENGTH_SHORT).show()
+                        playBeep(false)
+                    }
+                }
+            }
+        })
     }
 
     private fun playBeep(success: Boolean) {
@@ -374,6 +572,8 @@ class MainActivity : AppCompatActivity() {
                     binding.tvScanStatus.setTextColor(resources.getColor(R.color.amber_deduct))
                     binding.cardPlaceholder.visibility = View.VISIBLE
                     binding.cardPartInfo.visibility = View.GONE
+                    binding.tvBinSharedBadge.visibility = View.GONE
+                    currentBinParts.clear()
                     playBeep(false)
                 }
             }
@@ -390,12 +590,42 @@ class MainActivity : AppCompatActivity() {
                             val json = JSONObject(responseData)
                             currentPartId = json.getString("id")
                             currentPartName = json.getString("name")
+                            currentPartCategory = json.optString("category", "")
+                            currentPartLocation = json.optString("location", "")
+                            currentPartLocationColor = json.optString("locationColor", "#4b5563")
+                            currentPartUpc = if (json.has("upc") && !json.isNull("upc")) json.getString("upc") else upc
 
                             binding.tvPartName.text = json.getString("name")
                             binding.tvPartDescription.text = json.optString("description", "No description")
                             binding.tvPartCategory.text = json.getString("category").uppercase()
                             binding.tvPartLocation.text = json.getString("location")
                             binding.tvCurrentStock.text = json.getInt("stock").toString()
+
+                            // Parse companion parts in the same bin
+                            currentBinParts.clear()
+                            val binPartsArr = json.optJSONArray("binParts")
+                            if (binPartsArr != null) {
+                                for (i in 0 until binPartsArr.length()) {
+                                    val bp = binPartsArr.getJSONObject(i)
+                                    currentBinParts.add(
+                                        com.inventorypro.scanner.printer.LabelBitmapGenerator.LabelPartInfo(
+                                            id = bp.getString("id"),
+                                            name = bp.getString("name"),
+                                            binLocation = currentPartLocation ?: "",
+                                            category = bp.optString("category", ""),
+                                            upcBarcode = bp.optString("upc", ""),
+                                            stock = bp.optInt("stock", 0)
+                                        )
+                                    )
+                                }
+                            }
+
+                            if (currentBinParts.size > 1) {
+                                binding.tvBinSharedBadge.visibility = View.VISIBLE
+                                binding.tvBinSharedBadge.text = "${currentBinParts.size} in Bin"
+                            } else {
+                                binding.tvBinSharedBadge.visibility = View.GONE
+                            }
 
                             // Set location color dot
                             try {
@@ -423,6 +653,9 @@ class MainActivity : AppCompatActivity() {
                             binding.tvScanStatus.text = "Scan matched: ${json.getString("name")}"
                             binding.tvScanStatus.setTextColor(resources.getColor(R.color.green_add))
                             binding.etManualBarcode.setText("")
+                            binding.etAdjustQuantity.clearFocus()
+                            binding.root.requestFocus()
+                            hideKeyboard()
                             playBeep(true)
                         } catch (e: Exception) {
                             binding.tvScanStatus.text = "Data parse error"
@@ -519,16 +752,28 @@ class MainActivity : AppCompatActivity() {
                             binding.tvScanStatus.text = "Updated: $partName ($actionStr)"
                             binding.tvScanStatus.setTextColor(resources.getColor(R.color.green_add))
 
-                            // Append to session logs list
+                            // Add to interactive session history
                             val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-                            val changeSign = if (amount > 0) "+$amount" else "$amount"
-                            val logLine = "[$time] $partName: $changeSign (Stock: $newStock)\n"
-                            
-                            sessionLogs.insert(0, logLine)
-                            binding.tvRecentLogs.text = sessionLogs.toString()
+                            val historyItem = SessionHistoryItem(
+                                partId = partId,
+                                partName = partName,
+                                deltaAmount = amount,
+                                newStock = newStock,
+                                timestamp = time,
+                                category = currentPartCategory,
+                                location = currentPartLocation,
+                                locationColor = currentPartLocationColor,
+                                upc = currentPartUpc
+                            )
+                            sessionHistoryAdapter.addItem(historyItem)
+                            binding.rvSessionHistory.scrollToPosition(0)
+                            updateHistoryUIState()
 
                             // Reset adjustment field to 1
                             binding.etAdjustQuantity.setText("1")
+                            binding.etAdjustQuantity.clearFocus()
+                            binding.root.requestFocus()
+                            hideKeyboard()
 
                             playBeep(true)
                         } catch (e: Exception) {

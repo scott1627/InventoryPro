@@ -79,4 +79,15 @@ When you launch the app for the first time, you will see a configuration prompt:
 * **Auto-Optimization**: The app handles EXIF orientation rotation, resizes the cropped selection to a lightweight web-friendly resolution (max 1200x1200px), compresses to optimized JPEG, and uploads it via the secure `/api/scanner/part/photo` endpoint.
 * **Instant Sync & Feedback**: Upon upload, the app immediately refreshes the preview thumbnail in full color, plays a success tone, and updates the part's photo across the InventoryPro dashboard.
 
+---
+
+## 📜 Step 6: Interactive Session History & Instant Undo
+
+* **Live History Cards**: Every adjustment made during your session appears chronologically in a rich card view directly beneath the scanner controls.
+* **Color-Coded Delta Badges**: Additions display in an emerald badge (`+5`), while deductions display in an amber badge (`-2`), accompanied by exact timestamps, part names, updated stock counts, and bin locations.
+* **Tap-to-Revisit**: Tapping any card in the history immediately reloads that part in the top inspection card and smoothly scrolls the screen to the top, allowing quick follow-up adjustments or photo updates.
+* **1-Tap Undo**: If a stock adjustment was made by mistake, tap the **Undo (curved arrow)** button on that specific card. The app will automatically reverse the stock change on the server, update the live counts, play a confirmation chime, and remove the item from the session list.
+* **Clear Session**: Tap the "Clear History" button anytime to reset your session log without affecting inventory counts on the server.
+
+
 

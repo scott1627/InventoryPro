@@ -12,16 +12,21 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
 import java.net.URL
+import com.inventorypro.scanner.printer.SupvanBleManager
+import com.inventorypro.scanner.printer.PrinterPickerDialog
 
 class SettingsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySettingsBinding
     private val client = OkHttpClient()
+    private lateinit var bleManager: SupvanBleManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        bleManager = SupvanBleManager(this)
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = "Settings"
@@ -34,6 +39,8 @@ class SettingsActivity : AppCompatActivity() {
         binding.switchZebra.isChecked = prefs.getBoolean("EnableZebra", true)
         binding.switchCamera.isChecked = prefs.getBoolean("EnableCamera", true)
         binding.switchManual.isChecked = prefs.getBoolean("EnableManual", true)
+
+        setupPrinterSettings()
 
         binding.btnSaveSettings.setOnClickListener {
             val serverUrl = binding.etServerUrl.text.toString().trim()
@@ -54,6 +61,94 @@ class SettingsActivity : AppCompatActivity() {
             }
 
             testAndSaveSettings(serverUrl, username, password)
+        }
+    }
+
+    private fun setupPrinterSettings() {
+        updatePrinterStatusUI()
+
+        binding.btnSettingsScanPrinter.setOnClickListener {
+            if (!SupvanBleManager.hasPermissions(this)) {
+                androidx.core.app.ActivityCompat.requestPermissions(
+                    this,
+                    SupvanBleManager.getRequiredPermissions(),
+                    101
+                )
+                return@setOnClickListener
+            }
+            if (!bleManager.isBluetoothEnabled()) {
+                Toast.makeText(this, "Please enable Bluetooth first", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            PrinterPickerDialog.show(this, bleManager) {
+                updatePrinterStatusUI()
+            }
+        }
+
+        binding.btnSettingsTestPrint.setOnClickListener {
+            val targetMac = SupvanBleManager.getSavedPrinterMac(this)
+            if (targetMac.isNullOrBlank()) {
+                Toast.makeText(this, "Please scan and select a printer first", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (!SupvanBleManager.hasPermissions(this)) {
+                androidx.core.app.ActivityCompat.requestPermissions(
+                    this,
+                    SupvanBleManager.getRequiredPermissions(),
+                    101
+                )
+                return@setOnClickListener
+            }
+            if (!bleManager.isBluetoothEnabled()) {
+                Toast.makeText(this, "Please enable Bluetooth first", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            binding.btnSettingsTestPrint.isEnabled = false
+            Toast.makeText(this, "Sending test alignment label to printer...", Toast.LENGTH_SHORT).show()
+
+            val testLabel = com.inventorypro.scanner.printer.LabelBitmapGenerator.generateTestLabel()
+            bleManager.printBitmap(
+                deviceAddress = targetMac,
+                bitmap = testLabel,
+                density = 4,
+                copies = 1,
+                onProgress = { status: String ->
+                    binding.tvSettingsPrinterMac.text = status
+                },
+                onComplete = { success: Boolean, errorMsg: String? ->
+                    binding.btnSettingsTestPrint.isEnabled = true
+                    updatePrinterStatusUI()
+                    if (success) {
+                        Toast.makeText(this, "Test print successful! Printer verified.", Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(this, "Test print failed: ${errorMsg ?: "Check printer connection"}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            )
+        }
+
+        binding.btnSettingsForgetPrinter.setOnClickListener {
+            SupvanBleManager.clearSavedPrinter(this)
+            updatePrinterStatusUI()
+            Toast.makeText(this, "Printer configuration cleared", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun updatePrinterStatusUI() {
+        val name = SupvanBleManager.getSavedPrinterName(this)
+        val mac = SupvanBleManager.getSavedPrinterMac(this)
+
+        if (!mac.isNullOrBlank()) {
+            binding.tvSettingsPrinterName.text = name ?: "Katasymbol / Supvan E11"
+            binding.tvSettingsPrinterMac.text = "MAC: $mac"
+            binding.btnSettingsTestPrint.isEnabled = true
+            binding.btnSettingsForgetPrinter.visibility = android.view.View.VISIBLE
+        } else {
+            binding.tvSettingsPrinterName.text = "No Printer Configured"
+            binding.tvSettingsPrinterMac.text = "Compatible with Katasymbol & Supvan E11 / E10"
+            binding.btnSettingsTestPrint.isEnabled = false
+            binding.btnSettingsForgetPrinter.visibility = android.view.View.GONE
         }
     }
 

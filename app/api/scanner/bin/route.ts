@@ -1,0 +1,103 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "../../../../lib/prisma";
+import { authenticateScannerRequest } from "../../../../lib/scanner-auth";
+
+export async function GET(request: NextRequest) {
+    const user = await authenticateScannerRequest(request);
+    if (!user) {
+        return new NextResponse(
+            JSON.stringify({ error: "Unauthorized" }),
+            { status: 401, headers: { "Content-Type": "application/json" } }
+        );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const locationQuery = searchParams.get("location") || searchParams.get("name") || searchParams.get("q");
+    const locationId = searchParams.get("id");
+
+    if (!locationQuery && !locationId) {
+        return new NextResponse(
+            JSON.stringify({ error: "Location name or ID is required" }),
+            { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+    }
+
+    try {
+        let storageLocation = null;
+        if (locationId) {
+            storageLocation = await prisma.storageLocation.findUnique({
+                where: { id: locationId },
+                include: {
+                    parent: true,
+                    parts: {
+                        include: {
+                            category: { select: { name: true } },
+                            stockLevels: { orderBy: { id: "desc" }, take: 1 }
+                        }
+                    }
+                }
+            });
+        } else if (locationQuery) {
+            const trimmed = locationQuery.trim();
+            const partsSplit = trimmed.split("/").map(s => s.trim());
+            const leafName = partsSplit[partsSplit.length - 1];
+
+            storageLocation = await prisma.storageLocation.findFirst({
+                where: {
+                    OR: [
+                        { name: { equals: leafName, mode: "insensitive" } },
+                        { name: { contains: leafName, mode: "insensitive" } }
+                    ]
+                },
+                include: {
+                    parent: true,
+                    parts: {
+                        include: {
+                            category: { select: { name: true } },
+                            stockLevels: { orderBy: { id: "desc" }, take: 1 }
+                        }
+                    }
+                }
+            });
+        }
+
+        if (!storageLocation) {
+            return new NextResponse(
+                JSON.stringify({ error: "Storage location not found" }),
+                { status: 404, headers: { "Content-Type": "application/json" } }
+            );
+        }
+
+        const fullName = storageLocation.parent
+            ? `${storageLocation.parent.name} / ${storageLocation.name}`
+            : storageLocation.name;
+
+        const parts = storageLocation.parts.map(p => ({
+            id: p.id,
+            name: p.name,
+            description: p.description,
+            upc: p.upc,
+            category: p.category.name,
+            location: fullName,
+            locationColor: storageLocation.color || storageLocation.parent?.color || "#4b5563",
+            stock: p.stockLevels[0]?.quantity ?? 0,
+            imageUrl: p.imageUrl
+        }));
+
+        return new NextResponse(
+            JSON.stringify({
+                id: storageLocation.id,
+                location: fullName,
+                locationColor: storageLocation.color || storageLocation.parent?.color || "#4b5563",
+                parts: parts
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+    } catch (error) {
+        console.error("Error looking up bin:", error);
+        return new NextResponse(
+            JSON.stringify({ error: "Internal Server Error" }),
+            { status: 500, headers: { "Content-Type": "application/json" } }
+        );
+    }
+}
