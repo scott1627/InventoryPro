@@ -93,7 +93,9 @@ class PrintLabelDialog(
             val spinnerLabels = availableCompanions.map {
                 if (it.category.isNotBlank()) "${it.name} • ${it.category}" else it.name
             }
-            val adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, spinnerLabels)
+            val adapter = ArrayAdapter(context, R.layout.item_spinner_selected, spinnerLabels).apply {
+                setDropDownViewResource(R.layout.item_spinner_dropdown)
+            }
             binding.spinnerCompanionPart.adapter = adapter
             binding.spinnerCompanionPart.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
@@ -218,7 +220,9 @@ class PrintLabelDialog(
             "6 - Very Dark",
             "7 - Maximum"
         )
-        val adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, densityOptions)
+        val adapter = ArrayAdapter(context, R.layout.item_spinner_selected, densityOptions).apply {
+            setDropDownViewResource(R.layout.item_spinner_dropdown)
+        }
         binding.spinnerDensity.adapter = adapter
         binding.spinnerDensity.setSelection(3) // Default to index 3 (level 4)
     }
