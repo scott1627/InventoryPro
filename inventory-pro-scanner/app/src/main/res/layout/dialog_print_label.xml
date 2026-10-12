@@ -216,10 +216,27 @@
                     android:textSize="13sp" />
 
                 <RadioButton
+                    android:id="@+id/rbSingleTextOnly"
+                    android:layout_width="match_parent"
+                    android:layout_height="36dp"
+                    android:text="Text Only (Name + Category)"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp" />
+
+                <RadioButton
                     android:id="@+id/rbDualStacked"
                     android:layout_width="match_parent"
                     android:layout_height="36dp"
-                    android:text="Combined Bin (Stacked Label)"
+                    android:text="Combined Bin (QR Code + Stacked)"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+
+                <RadioButton
+                    android:id="@+id/rbDualTextOnly"
+                    android:layout_width="match_parent"
+                    android:layout_height="36dp"
+                    android:text="Split Label (Name + Category, No QR)"
                     android:textColor="@color/text_primary"
                     android:textSize="13sp"
                     android:visibility="gone" />

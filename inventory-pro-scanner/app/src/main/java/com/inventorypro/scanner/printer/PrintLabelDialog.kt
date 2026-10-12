@@ -113,20 +113,24 @@ class PrintLabelDialog(
 
         binding.switchCombineParts.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                // Show dual stacked style, hide single-part specific styles
+                // Show dual styles, hide single-part specific styles
                 binding.rbDualStacked.visibility = View.VISIBLE
+                binding.rbDualTextOnly.visibility = View.VISIBLE
                 binding.rbBinQr.visibility = View.GONE
                 binding.rbItemBarcode.visibility = View.GONE
                 binding.rbCompactBin.visibility = View.GONE
+                binding.rbSingleTextOnly.visibility = View.GONE
 
                 currentStyle = LabelBitmapGenerator.LabelStyle.DUAL_PART_STACKED
                 binding.rbDualStacked.isChecked = true
             } else {
                 // Revert to single-part styles
                 binding.rbDualStacked.visibility = View.GONE
+                binding.rbDualTextOnly.visibility = View.GONE
                 binding.rbBinQr.visibility = View.VISIBLE
                 binding.rbItemBarcode.visibility = View.VISIBLE
                 binding.rbCompactBin.visibility = View.VISIBLE
+                binding.rbSingleTextOnly.visibility = View.VISIBLE
 
                 currentStyle = LabelBitmapGenerator.LabelStyle.BIN_LABEL_QR
                 binding.rbBinQr.isChecked = true
@@ -197,7 +201,9 @@ class PrintLabelDialog(
             currentStyle = when (checkedId) {
                 R.id.rbItemBarcode -> LabelBitmapGenerator.LabelStyle.ITEM_LABEL_BARCODE
                 R.id.rbCompactBin -> LabelBitmapGenerator.LabelStyle.COMPACT_BIN
+                R.id.rbSingleTextOnly -> LabelBitmapGenerator.LabelStyle.SINGLE_TEXT_ONLY
                 R.id.rbDualStacked -> LabelBitmapGenerator.LabelStyle.DUAL_PART_STACKED
+                R.id.rbDualTextOnly -> LabelBitmapGenerator.LabelStyle.DUAL_TEXT_ONLY
                 else -> {
                     if (binding.switchCombineParts.isChecked) {
                         LabelBitmapGenerator.LabelStyle.DUAL_PART_STACKED

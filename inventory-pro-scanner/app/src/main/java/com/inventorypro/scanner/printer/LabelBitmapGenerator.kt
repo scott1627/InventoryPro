@@ -40,7 +40,9 @@ object LabelBitmapGenerator {
         BIN_LABEL_QR("Bin Label (QR Code + Large Bin)"),
         ITEM_LABEL_BARCODE("Item Label (1D Barcode + Details)"),
         COMPACT_BIN("Compact Bin Tag"),
-        DUAL_PART_STACKED("Combined Bin (Stacked Label)")
+        SINGLE_TEXT_ONLY("Text Only (Name + Category)"),
+        DUAL_PART_STACKED("Combined Bin (QR Code + Stacked)"),
+        DUAL_TEXT_ONLY("Split Label (Name + Category, No QR)")
     }
 
     /**
@@ -62,9 +64,13 @@ object LabelBitmapGenerator {
             LabelStyle.BIN_LABEL_QR -> renderBinLabelQr(cleanBarcode, cleanName, cleanBin, category)
             LabelStyle.ITEM_LABEL_BARCODE -> renderItemLabelBarcode(cleanBarcode, cleanName, cleanBin)
             LabelStyle.COMPACT_BIN -> renderCompactBinLabel(cleanBarcode, cleanName, cleanBin, category)
-            LabelStyle.DUAL_PART_STACKED -> {
-                // If dual style called with single part, fallback to standard bin QR
-                renderBinLabelQr(cleanBarcode, cleanName, cleanBin, category)
+            LabelStyle.SINGLE_TEXT_ONLY -> renderSingleTextOnly(cleanName, category)
+            LabelStyle.DUAL_PART_STACKED, LabelStyle.DUAL_TEXT_ONLY -> {
+                if (style == LabelStyle.DUAL_TEXT_ONLY) {
+                    renderSingleTextOnly(cleanName, category)
+                } else {
+                    renderBinLabelQr(cleanBarcode, cleanName, cleanBin, category)
+                }
             }
         }
     }
@@ -80,7 +86,10 @@ object LabelBitmapGenerator {
         style: LabelStyle = LabelStyle.DUAL_PART_STACKED
     ): Bitmap {
         val cleanBin = if (binLocation.isNotBlank()) binLocation.trim() else if (part1.binLocation.isNotBlank()) part1.binLocation.trim() else "NO-BIN"
-        return renderDualStackedLabel(part1, part2, cleanBin)
+        return when (style) {
+            LabelStyle.DUAL_TEXT_ONLY -> renderDualTextOnly(part1, part2)
+            else -> renderDualStackedLabel(part1, part2, cleanBin)
+        }
     }
 
     /**
@@ -365,6 +374,119 @@ object LabelBitmapGenerator {
         val p2Sub = part2.category.trim()
         if (p2Sub.isNotEmpty()) {
             canvas.drawText(truncateText(p2Sub, subPaint, maxTextWidth), textLeft, 82f, subPaint)
+        }
+
+        return bitmap
+    }
+
+    /**
+     * Single Part Text-Only Label (No QR / No Barcode).
+     * Dimensions: 312 x 96 dots (~39mm at 203 DPI to fit 40mm bins).
+     * Only contains Part Name (prominent bold) and Category.
+     */
+    private fun renderSingleTextOnly(
+        partName: String,
+        category: String
+    ): Bitmap {
+        val width = 312
+        val bitmap = Bitmap.createBitmap(width, HEAD_DOTS, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(Color.WHITE)
+
+        val marginX = 14f
+        val maxTextWidth = width - (marginX * 2)
+        val cleanCat = category.trim()
+
+        if (cleanCat.isNotEmpty()) {
+            // Part Name: Prominent bold text on top half
+            val namePaint = Paint().apply {
+                isAntiAlias = true
+                color = Color.BLACK
+                textSize = 23f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            }
+            canvas.drawText(truncateText(partName, namePaint, maxTextWidth), marginX, 42f, namePaint)
+
+            // Category: Subtitle on bottom half
+            val catPaint = Paint().apply {
+                isAntiAlias = true
+                color = Color.BLACK
+                textSize = 15f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            }
+            canvas.drawText(truncateText(cleanCat.uppercase(Locale.US), catPaint, maxTextWidth), marginX, 74f, catPaint)
+        } else {
+            // If no category, center the Part Name vertically in extra large bold text
+            val namePaint = Paint().apply {
+                isAntiAlias = true
+                color = Color.BLACK
+                textSize = 26f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            }
+            canvas.drawText(truncateText(partName, namePaint, maxTextWidth), marginX, 56f, namePaint)
+        }
+
+        return bitmap
+    }
+
+    /**
+     * Split Part Text-Only Label (No QR / No Barcode).
+     * Dimensions: 312 x 96 dots (~39mm at 203 DPI to fit 40mm bins).
+     * Top half: ① Part 1 Name & Category.
+     * Divider: Horizontal line across the middle.
+     * Bottom half: ② Part 2 Name & Category.
+     */
+    private fun renderDualTextOnly(
+        part1: LabelPartInfo,
+        part2: LabelPartInfo
+    ): Bitmap {
+        val width = 312
+        val bitmap = Bitmap.createBitmap(width, HEAD_DOTS, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(Color.WHITE)
+
+        val marginX = 10f
+        val maxTextWidth = width - (marginX * 2)
+
+        val namePaint = Paint().apply {
+            isAntiAlias = true
+            color = Color.BLACK
+            textSize = 15.5f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        }
+        val catPaint = Paint().apply {
+            isAntiAlias = true
+            color = Color.BLACK
+            textSize = 12f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        }
+        val dividerPaint = Paint().apply {
+            color = Color.BLACK
+            strokeWidth = 1f
+            isAntiAlias = false
+        }
+
+        // --- Top Half: Part 1 (y = 0..48) ---
+        val p1Name = "① " + part1.name.trim()
+        val p1Cat = part1.category.trim()
+        if (p1Cat.isNotEmpty()) {
+            canvas.drawText(truncateText(p1Name, namePaint, maxTextWidth), marginX, 22f, namePaint)
+            canvas.drawText(truncateText(p1Cat.uppercase(Locale.US), catPaint, maxTextWidth), marginX + 16f, 39f, catPaint)
+        } else {
+            canvas.drawText(truncateText(p1Name, namePaint, maxTextWidth), marginX, 30f, namePaint)
+        }
+
+        // Horizontal dividing line at y = 48
+        canvas.drawLine(marginX, 48f, width - marginX, 48f, dividerPaint)
+
+        // --- Bottom Half: Part 2 (y = 48..96) ---
+        val p2Name = "② " + part2.name.trim()
+        val p2Cat = part2.category.trim()
+        if (p2Cat.isNotEmpty()) {
+            canvas.drawText(truncateText(p2Name, namePaint, maxTextWidth), marginX, 70f, namePaint)
+            canvas.drawText(truncateText(p2Cat.uppercase(Locale.US), catPaint, maxTextWidth), marginX + 16f, 87f, catPaint)
+        } else {
+            canvas.drawText(truncateText(p2Name, namePaint, maxTextWidth), marginX, 78f, namePaint)
         }
 
         return bitmap
