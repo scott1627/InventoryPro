@@ -382,7 +382,8 @@ object LabelBitmapGenerator {
     /**
      * Single Part Text-Only Label (No QR / No Barcode).
      * Dimensions: 312 x 96 dots (~39mm at 203 DPI to fit 40mm bins).
-     * Only contains Part Name (prominent bold) and Category.
+     * Only contains Part Name (prominent extra-large bold) and Category.
+     * Uses full width and height with dynamic text scaling.
      */
     private fun renderSingleTextOnly(
         partName: String,
@@ -393,37 +394,31 @@ object LabelBitmapGenerator {
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.WHITE)
 
-        val marginX = 14f
+        val marginX = 8f
         val maxTextWidth = width - (marginX * 2)
+        val cleanName = partName.trim().ifEmpty { "Unnamed Item" }
         val cleanCat = category.trim()
 
         if (cleanCat.isNotEmpty()) {
-            // Part Name: Prominent bold text on top half
-            val namePaint = Paint().apply {
-                isAntiAlias = true
-                color = Color.BLACK
-                textSize = 23f
-                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            }
-            canvas.drawText(truncateText(partName, namePaint, maxTextWidth), marginX, 42f, namePaint)
+            // Part Name / Number: Extra-large bold font auto-fitted from 38f down to 20f
+            val (_, namePaint) = fitTextSize(cleanName, startSize = 38f, minSize = 20f, maxWidth = maxTextWidth, isBold = true)
+            canvas.drawText(truncateText(cleanName, namePaint, maxTextWidth), marginX, 42f, namePaint)
 
-            // Category: Subtitle on bottom half
-            val catPaint = Paint().apply {
-                isAntiAlias = true
+            // Dividing line between name and category
+            val dividerPaint = Paint().apply {
                 color = Color.BLACK
-                textSize = 15f
-                typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+                strokeWidth = 1f
+                isAntiAlias = false
             }
-            canvas.drawText(truncateText(cleanCat.uppercase(Locale.US), catPaint, maxTextWidth), marginX, 74f, catPaint)
+            canvas.drawLine(marginX, 52f, width - marginX, 52f, dividerPaint)
+
+            // Category: Prominent bold font underneath (auto-fit 22f down to 14f)
+            val (_, catPaint) = fitTextSize(cleanCat.uppercase(Locale.US), startSize = 22f, minSize = 14f, maxWidth = maxTextWidth, isBold = true)
+            canvas.drawText(truncateText(cleanCat.uppercase(Locale.US), catPaint, maxTextWidth), marginX, 80f, catPaint)
         } else {
-            // If no category, center the Part Name vertically in extra large bold text
-            val namePaint = Paint().apply {
-                isAntiAlias = true
-                color = Color.BLACK
-                textSize = 26f
-                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            }
-            canvas.drawText(truncateText(partName, namePaint, maxTextWidth), marginX, 56f, namePaint)
+            // If no category, fill the entire label with extra large Part Name (up to 44f bold!)
+            val (_, namePaint) = fitTextSize(cleanName, startSize = 44f, minSize = 22f, maxWidth = maxTextWidth, isBold = true)
+            canvas.drawText(truncateText(cleanName, namePaint, maxTextWidth), marginX, 58f, namePaint)
         }
 
         return bitmap
@@ -432,9 +427,9 @@ object LabelBitmapGenerator {
     /**
      * Split Part Text-Only Label (No QR / No Barcode).
      * Dimensions: 312 x 96 dots (~39mm at 203 DPI to fit 40mm bins).
-     * Top half: ① Part 1 Name & Category.
-     * Divider: Horizontal line across the middle.
-     * Bottom half: ② Part 2 Name & Category.
+     * Top half: ① Part 1 Name on LEFT (large bold), Category on RIGHT (right-aligned).
+     * Divider: Horizontal line across the middle at y = 48.
+     * Bottom half: ② Part 2 Name on LEFT (large bold), Category on RIGHT (right-aligned).
      */
     private fun renderDualTextOnly(
         part1: LabelPartInfo,
@@ -445,49 +440,47 @@ object LabelBitmapGenerator {
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.WHITE)
 
-        val marginX = 10f
-        val maxTextWidth = width - (marginX * 2)
-
-        val namePaint = Paint().apply {
-            isAntiAlias = true
-            color = Color.BLACK
-            textSize = 15.5f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        }
-        val catPaint = Paint().apply {
-            isAntiAlias = true
-            color = Color.BLACK
-            textSize = 12f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-        }
+        val marginX = 8f
         val dividerPaint = Paint().apply {
             color = Color.BLACK
             strokeWidth = 1f
             isAntiAlias = false
         }
 
-        // --- Top Half: Part 1 (y = 0..48) ---
-        val p1Name = "① " + part1.name.trim()
-        val p1Cat = part1.category.trim()
-        if (p1Cat.isNotEmpty()) {
-            canvas.drawText(truncateText(p1Name, namePaint, maxTextWidth), marginX, 22f, namePaint)
-            canvas.drawText(truncateText(p1Cat.uppercase(Locale.US), catPaint, maxTextWidth), marginX + 16f, 39f, catPaint)
-        } else {
-            canvas.drawText(truncateText(p1Name, namePaint, maxTextWidth), marginX, 30f, namePaint)
-        }
-
         // Horizontal dividing line at y = 48
         canvas.drawLine(marginX, 48f, width - marginX, 48f, dividerPaint)
 
-        // --- Bottom Half: Part 2 (y = 48..96) ---
-        val p2Name = "② " + part2.name.trim()
-        val p2Cat = part2.category.trim()
-        if (p2Cat.isNotEmpty()) {
-            canvas.drawText(truncateText(p2Name, namePaint, maxTextWidth), marginX, 70f, namePaint)
-            canvas.drawText(truncateText(p2Cat.uppercase(Locale.US), catPaint, maxTextWidth), marginX + 16f, 87f, catPaint)
-        } else {
-            canvas.drawText(truncateText(p2Name, namePaint, maxTextWidth), marginX, 78f, namePaint)
+        // Helper to render one row (height 48 dots)
+        fun renderDualRow(prefix: String, name: String, category: String, baselineY: Float) {
+            val cleanName = "$prefix ${name.trim()}".trim()
+            val cleanCat = category.trim().uppercase(Locale.US)
+
+            if (cleanCat.isNotEmpty()) {
+                // Category on the right: bold font auto-fitted from 17f down to 12f
+                val maxCatWidth = 115f
+                val (_, catPaint) = fitTextSize(cleanCat, startSize = 17f, minSize = 12f, maxWidth = maxCatWidth, isBold = true)
+                catPaint.textAlign = Paint.Align.RIGHT
+                val drawnCat = truncateText(cleanCat, catPaint, maxCatWidth)
+                canvas.drawText(drawnCat, width - marginX, baselineY, catPaint)
+                val actualCatWidth = catPaint.measureText(drawnCat)
+
+                // Part Name on the left: auto-fit from 25f down to 15f
+                val maxNameWidth = width - marginX - actualCatWidth - 10f - marginX
+                val (_, namePaint) = fitTextSize(cleanName, startSize = 25f, minSize = 15f, maxWidth = maxNameWidth, isBold = true)
+                canvas.drawText(truncateText(cleanName, namePaint, maxNameWidth), marginX, baselineY, namePaint)
+            } else {
+                // No category: Part Name gets full width across the row
+                val maxNameWidth = width - (marginX * 2)
+                val (_, namePaint) = fitTextSize(cleanName, startSize = 26f, minSize = 16f, maxWidth = maxNameWidth, isBold = true)
+                canvas.drawText(truncateText(cleanName, namePaint, maxNameWidth), marginX, baselineY, namePaint)
+            }
         }
+
+        // Top half: Part 1 centered vertically in 0..48
+        renderDualRow("①", part1.name, part1.category, baselineY = 32f)
+
+        // Bottom half: Part 2 centered vertically in 48..96
+        renderDualRow("②", part2.name, part2.category, baselineY = 80f)
 
         return bitmap
     }
@@ -628,5 +621,29 @@ object LabelBitmapGenerator {
             truncated = truncated.dropLast(1)
         }
         return if (truncated.isNotEmpty()) "$truncated…" else text
+    }
+
+    private fun fitTextSize(
+        text: String,
+        startSize: Float,
+        minSize: Float,
+        maxWidth: Float,
+        isBold: Boolean = true
+    ): Pair<Float, Paint> {
+        val paint = Paint().apply {
+            this.isAntiAlias = true
+            this.color = Color.BLACK
+            this.typeface = if (isBold) Typeface.create(Typeface.DEFAULT, Typeface.BOLD) else Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        }
+        var size = startSize
+        while (size > minSize) {
+            paint.textSize = size
+            if (paint.measureText(text) <= maxWidth) {
+                return Pair(size, paint)
+            }
+            size -= 1f
+        }
+        paint.textSize = minSize
+        return Pair(minSize, paint)
     }
 }
